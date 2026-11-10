@@ -310,38 +310,38 @@ class _CommentsModalState extends State<CommentsModal> {
         height: MediaQuery.of(context).size.height * 0.75,
         child: Container(
           decoration: BoxDecoration(
-            color: theme.scaffoldBackgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            color: theme.brightness == Brightness.dark ? const Color(0xFF171922) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
           ),
           child: Column(
             children: [
               // Çekme çubuğu ve Başlık
               Container(
                 margin: const EdgeInsets.only(top: 12, bottom: 8),
-                width: 40,
+                width: 44,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade600,
+                  color: Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       '${loc.translate('comments')} (${_comments.length})',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: -0.3),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close),
+                      icon: const Icon(Icons.close_rounded, size: 20),
                       onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
                     ),
                   ],
                 ),
               ),
-              const Divider(height: 1),
+              const Divider(height: 1, color: Color(0xFFEEEEF2)),
 
               // Yorum Listesi
               Expanded(

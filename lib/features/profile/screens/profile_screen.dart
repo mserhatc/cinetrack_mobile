@@ -64,18 +64,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (login.isEmpty || pass.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lütfen kullanıcı adı/e-posta ve şifrenizi girin.')),
+        const SnackBar(
+          content: Text('Lütfen kullanıcı adı / e-posta ve şifrenizi girin.'),
+          backgroundColor: Colors.redAccent,
+        ),
       );
       return;
     }
 
-    final success = await context.read<AuthCubit>().login(login, pass);
-    if (success && mounted) {
+    final authCubit = context.read<AuthCubit>();
+    final success = await authCubit.login(login, pass);
+    if (!mounted) return;
+
+    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Hoş geldiniz! Giriş başarılı.')),
+        const SnackBar(
+          content: Text('Hoş geldiniz! Giriş başarılı. ⭐'),
+          backgroundColor: Color(0xFF2ECC71),
+        ),
       );
       _loadProfileData();
       context.read<FeedCubit>().fetchFeed();
+    } else {
+      final state = authCubit.state;
+      String errorMsg = 'Giriş yapılamadı.';
+      if (state is Unauthenticated && state.message != null && state.message!.isNotEmpty) {
+        errorMsg = state.message!;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMsg), backgroundColor: Colors.redAccent),
+      );
     }
   }
 
@@ -87,24 +105,57 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (username.isEmpty || email.isEmpty || pass.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lütfen zorunlu alanları doldurun.')),
+        const SnackBar(
+          content: Text('Lütfen kullanıcı adı, e-posta ve şifre alanlarını doldurun.'),
+          backgroundColor: Colors.redAccent,
+        ),
       );
       return;
     }
 
-    final success = await context.read<AuthCubit>().register(
+    if (pass.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Şifreniz en az 6 karakter olmalıdır.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    final authCubit = context.read<AuthCubit>();
+    final success = await authCubit.register(
       username,
       email,
       pass,
       fullName.isNotEmpty ? fullName : username,
       avatar: _regAvatar,
     );
-    if (success && mounted) {
+
+    if (!mounted) return;
+
+    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Hesabınız oluşturuldu! Hoş geldiniz.')),
+        const SnackBar(
+          content: Text('Hesabınız oluşturuldu! Hoş geldiniz. ⭐'),
+          backgroundColor: Color(0xFF2ECC71),
+        ),
       );
       _loadProfileData();
       context.read<FeedCubit>().fetchFeed();
+    } else {
+      final state = authCubit.state;
+      String errorMsg = 'Kayıt yapılamadı. Lütfen bilgilerinizi kontrol edin.';
+      if (state is Unauthenticated && state.message != null && state.message!.isNotEmpty) {
+        errorMsg = state.message!;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMsg),
+          backgroundColor: Colors.redAccent,
+          duration: const Duration(seconds: 4),
+        ),
+      );
     }
   }
 
@@ -906,7 +957,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Tıklanabilir İstatistik Kartı Widget'ı
+  // Tıklanabilir İstatistik Kartı Widget'ı (Movie Explorer Minimalist Tarzı)
   Widget _buildProfileMetricCard(
     BuildContext context, {
     required dynamic count,
@@ -916,41 +967,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required VoidCallback onTap,
   }) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Expanded(
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
           decoration: BoxDecoration(
-            color: theme.cardTheme.color,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: theme.dividerColor.withValues(alpha: 0.15)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            color: isDark ? const Color(0xFF171922) : const Color(0xFFF7F8FA),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark ? const Color(0xFF232634) : const Color(0xFFEEEEF2),
+              width: 1,
+            ),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 22, color: color),
+              Icon(icon, size: 20, color: color),
               const SizedBox(height: 6),
               Text(
                 count.toString(),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                  color: isDark ? Colors.white : const Color(0xFF14171A),
+                ),
               ),
               const SizedBox(height: 2),
               Text(
                 label,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 10.5,
+                style: const TextStyle(
+                  fontSize: 10,
                   fontWeight: FontWeight.w600,
-                  color: theme.textTheme.bodySmall?.color,
+                  color: Color(0xFF8A90A0),
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

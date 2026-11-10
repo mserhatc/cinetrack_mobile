@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../auth/cubit/auth_cubit.dart';
 import '../cubit/feed_cubit.dart';
 import '../../profile/cubit/profile_cubit.dart';
@@ -218,8 +219,19 @@ class _PostCardState extends State<PostCard> {
     final postUserId = int.tryParse(_post['user_id']?.toString() ?? '') ?? 0;
     final isMyPost = isLoggedIn && currentUserId > 0 && (currentUserId == postUserId);
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+    final isDark = theme.brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF171922) : Colors.white;
+    final cardBorder = isDark ? const Color(0xFF232634) : const Color(0xFFEEEEF2);
+    final titleColor = isDark ? Colors.white : const Color(0xFF14171A);
+    final mutedColor = isDark ? Colors.white60 : const Color(0xFF8A90A0);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: cardBorder, width: 1),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -243,7 +255,7 @@ class _PostCardState extends State<PostCard> {
                         children: [
                           CircleAvatar(
                             radius: 20,
-                            backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
+                            backgroundColor: AppTheme.primaryColor.withOpacity(0.12),
                             backgroundImage: (_post['avatar'] != null && _post['avatar'].toString().isNotEmpty)
                                 ? NetworkImage(_post['avatar'])
                                 : null,
@@ -252,7 +264,7 @@ class _PostCardState extends State<PostCard> {
                                     (_post['username'] ?? '?')[0].toUpperCase(),
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      color: theme.colorScheme.primary,
+                                      color: AppTheme.primaryColor,
                                     ),
                                   )
                                 : null,
@@ -266,11 +278,11 @@ class _PostCardState extends State<PostCard> {
                                   _post['full_name']?.isNotEmpty == true
                                       ? _post['full_name']
                                       : (_post['username'] ?? 'Kullanıcı'),
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: titleColor),
                                 ),
                                 Text(
                                   '@${_post['username'] ?? 'anonim'}',
-                                  style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 13),
+                                  style: TextStyle(color: mutedColor, fontSize: 12),
                                 ),
                               ],
                             ),
@@ -286,25 +298,25 @@ class _PostCardState extends State<PostCard> {
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: isQuote
-                        ? Colors.amber.withOpacity(0.15)
-                        : Colors.redAccent.withOpacity(0.15),
+                        ? AppTheme.primaryColor.withOpacity(0.12)
+                        : const Color(0xFF2ECC71).withOpacity(0.12),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        isQuote ? Icons.format_quote : Icons.rate_review,
+                        isQuote ? Icons.format_quote_rounded : Icons.rate_review_outlined,
                         size: 14,
-                        color: isQuote ? Colors.amber : Colors.redAccent,
+                        color: isQuote ? AppTheme.primaryColor : const Color(0xFF2ECC71),
                       ),
                       const SizedBox(width: 4),
                       Text(
                         isQuote ? loc.translate('quotes') : loc.translate('reviews'),
                         style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: isQuote ? Colors.amber : Colors.redAccent,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: isQuote ? AppTheme.primaryColor : const Color(0xFF2ECC71),
                         ),
                       ),
                     ],
@@ -350,25 +362,24 @@ class _PostCardState extends State<PostCard> {
             ),
             const SizedBox(height: 14),
 
-            // Replik İçeriği
+            // Replik İçeriği (Movie Explorer Alıntı Kartı)
             if (isQuote && _post['quote_text'] != null && _post['quote_text'].toString().isNotEmpty)
               Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: theme.brightness == Brightness.dark
-                      ? const Color(0xFF222533)
-                      : Colors.amber.withOpacity(0.06),
-                  borderRadius: BorderRadius.circular(12),
-                  border: const Border(left: BorderSide(color: Colors.amber, width: 4)),
+                  color: isDark ? const Color(0xFF13151D) : const Color(0xFFFDFBF7),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border(left: BorderSide(color: AppTheme.primaryColor, width: 3.5)),
                 ),
                 child: Text(
                   '“${_post['quote_text']}”',
-                  style: const TextStyle(
-                    fontSize: 16,
+                  style: TextStyle(
+                    fontSize: 15,
                     fontStyle: FontStyle.italic,
                     fontWeight: FontWeight.w600,
-                    letterSpacing: 0.3,
+                    color: titleColor,
+                    height: 1.4,
                   ),
                 ),
               ),
@@ -379,52 +390,46 @@ class _PostCardState extends State<PostCard> {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Text(
                   _post['content'],
-                  style: const TextStyle(fontSize: 14.5, height: 1.4),
+                  style: TextStyle(fontSize: 14, height: 1.45, color: isDark ? Colors.white70 : const Color(0xFF3E434D)),
                 ),
               ),
 
-            // İlişkili Film / Dizi Kartı (Poster + Başlık + Puan)
+            // İlişkili Film / Dizi Kartı (Movie Explorer Tarzı)
             if (_post['title'] != null && _post['title'].toString().isNotEmpty)
               InkWell(
                 onTap: tmdbId != null
                     ? () => context.push('/media/$mediaType/$tmdbId')
                     : null,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
                 child: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: theme.brightness == Brightness.dark
-                        ? const Color(0xFF13151D)
-                        : Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: theme.brightness == Brightness.dark
-                          ? const Color(0xFF262835)
-                          : Colors.grey.shade300,
-                    ),
+                    color: isDark ? const Color(0xFF13151D) : const Color(0xFFF7F8FA),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: cardBorder, width: 1),
                   ),
                   child: Row(
                     children: [
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                         child: hasPoster
                             ? Image.network(
                                 AppConstants.getPosterUrl(_post['poster_path']),
-                                width: 55,
-                                height: 80,
+                                width: 52,
+                                height: 75,
                                 fit: BoxFit.cover,
                                 errorBuilder: (_, __, ___) => Container(
-                                  width: 55,
-                                  height: 80,
-                                  color: Colors.grey.shade800,
-                                  child: const Icon(Icons.movie, color: Colors.white54),
+                                  width: 52,
+                                  height: 75,
+                                  color: Colors.grey.shade300,
+                                  child: const Icon(Icons.movie, color: Colors.grey),
                                 ),
                               )
                             : Container(
-                                width: 55,
-                                height: 80,
-                                color: Colors.grey.shade800,
-                                child: const Icon(Icons.movie, color: Colors.white54),
+                                width: 52,
+                                height: 75,
+                                color: Colors.grey.shade300,
+                                child: const Icon(Icons.movie, color: Colors.grey),
                               ),
                       ),
                       const SizedBox(width: 12),
@@ -434,27 +439,24 @@ class _PostCardState extends State<PostCard> {
                           children: [
                             Text(
                               _post['title'] ?? '',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: titleColor),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 4),
                             Text(
                               mediaType == 'tv' ? 'Dizi' : 'Film',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: theme.textTheme.bodySmall?.color,
-                              ),
+                              style: TextStyle(fontSize: 12, color: mutedColor),
                             ),
                             if (_post['rating'] != null) ...[
                               const SizedBox(height: 6),
                               Row(
                                 children: [
-                                  const Icon(Icons.star_rounded, color: Colors.amber, size: 18),
+                                  const Icon(Icons.star_rounded, color: AppTheme.starColor, size: 16),
                                   const SizedBox(width: 4),
                                   Text(
                                     '${_post['rating']} / 10',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: titleColor),
                                   ),
                                 ],
                               ),
@@ -462,7 +464,7 @@ class _PostCardState extends State<PostCard> {
                           ],
                         ),
                       ),
-                      const Icon(Icons.chevron_right, color: Colors.white54),
+                      Icon(Icons.arrow_forward_ios_rounded, size: 14, color: mutedColor),
                     ],
                   ),
                 ),

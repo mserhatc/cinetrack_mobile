@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../core/theme/app_theme.dart';
 import '../cubit/profile_cubit.dart';
 
 class WatchedListScreen extends StatefulWidget {
@@ -43,29 +44,51 @@ class _WatchedListScreenState extends State<WatchedListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? AppTheme.darkBg : AppTheme.lightBg;
+    final titleColor = isDark ? Colors.white : AppTheme.darkText;
+    final mutedColor = isDark ? Colors.white60 : AppTheme.mutedText;
+
     final loc = AppLocalizations.of(context);
     final isMovie = widget.mediaType == 'movie';
     final title = isMovie ? loc.translate('watched_movies') : loc.translate('watched_shows');
 
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      backgroundColor: bg,
+      appBar: AppBar(
+        backgroundColor: bg,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: titleColor),
+          onPressed: () => Navigator.pop(context),
+        ),
+        centerTitle: true,
+        title: Text(
+          title,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: titleColor,
+            letterSpacing: -0.3,
+          ),
+        ),
+      ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor))
           : _items.isEmpty
               ? Center(
                   child: Text(
                     isMovie ? 'Henüz izlenen film yok.' : 'Henüz izlenen dizi yok.',
-                    style: TextStyle(color: theme.textTheme.bodySmall?.color),
+                    style: TextStyle(color: mutedColor, fontSize: 14),
                   ),
                 )
               : GridView.builder(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(16),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 3,
                     childAspectRatio: 0.65,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
                   ),
                   itemCount: _items.length,
                   itemBuilder: (context, index) {
@@ -76,9 +99,9 @@ class _WatchedListScreenState extends State<WatchedListScreen> {
 
                     return InkWell(
                       onTap: () => context.push('/media/${widget.mediaType}/$tmdbId'),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(16),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(16),
                         child: Stack(
                           fit: StackFit.expand,
                           children: [
@@ -86,8 +109,8 @@ class _WatchedListScreenState extends State<WatchedListScreen> {
                               AppConstants.getPosterUrl(poster),
                               fit: BoxFit.cover,
                               errorBuilder: (_, __, ___) => Container(
-                                color: Colors.grey.shade800,
-                                child: const Icon(Icons.movie, color: Colors.white54),
+                                color: isDark ? AppTheme.darkCard : Colors.grey.shade200,
+                                child: Icon(Icons.movie, color: mutedColor),
                               ),
                             ),
                             if (rating != null)
@@ -95,22 +118,22 @@ class _WatchedListScreenState extends State<WatchedListScreen> {
                                 top: 6,
                                 right: 6,
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                                   decoration: BoxDecoration(
-                                    color: Colors.black87,
-                                    borderRadius: BorderRadius.circular(8),
+                                    color: Colors.black.withOpacity(0.65),
+                                    borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Icon(Icons.star_rounded, color: Colors.amber, size: 14),
+                                      const Icon(Icons.star_rounded, color: AppTheme.starColor, size: 12),
                                       const SizedBox(width: 2),
                                       Text(
                                         '$rating',
                                         style: const TextStyle(
-                                          color: Colors.amber,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w800,
                                         ),
                                       ),
                                     ],
@@ -122,20 +145,20 @@ class _WatchedListScreenState extends State<WatchedListScreen> {
                               left: 0,
                               right: 0,
                               child: Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: const BoxDecoration(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     begin: Alignment.bottomCenter,
                                     end: Alignment.topCenter,
-                                    colors: [Colors.black87, Colors.transparent],
+                                    colors: [Colors.black.withOpacity(0.85), Colors.transparent],
                                   ),
                                 ),
                                 child: Text(
                                   item['title'] ?? '',
                                   style: const TextStyle(
                                     color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -151,4 +174,3 @@ class _WatchedListScreenState extends State<WatchedListScreen> {
     );
   }
 }
-

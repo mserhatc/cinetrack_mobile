@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../auth/cubit/auth_cubit.dart';
 import '../../feed/cubit/feed_cubit.dart';
 import '../../profile/cubit/profile_cubit.dart';
@@ -15,8 +16,8 @@ class CreatePostScreen extends StatefulWidget {
   State<CreatePostScreen> createState() => _CreatePostScreenState();
 }
 
-class _CreatePostScreenState extends State<CreatePostScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _CreatePostScreenState extends State<CreatePostScreen> {
+  int _selectedTab = 0; // 0: Quote, 1: Review
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _quoteController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
@@ -25,14 +26,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> with SingleTickerPr
   double _rating = 8.0;
 
   @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
-
-  @override
   void dispose() {
-    _tabController.dispose();
     _searchController.dispose();
     _quoteController.dispose();
     _contentController.dispose();
@@ -52,26 +46,29 @@ class _CreatePostScreenState extends State<CreatePostScreen> with SingleTickerPr
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        final sheetBg = isDark ? AppTheme.darkCard : Colors.white;
+        final titleColor = isDark ? Colors.white : AppTheme.darkText;
+
         return BlocProvider.value(
           value: context.read<CreatePostCubit>(),
           child: StatefulBuilder(
             builder: (context, setModalState) {
-              final theme = Theme.of(context);
               return Container(
-                height: MediaQuery.of(context).size.height * 0.8,
+                height: MediaQuery.of(context).size.height * 0.85,
                 decoration: BoxDecoration(
-                  color: theme.scaffoldBackgroundColor,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  color: sheetBg,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
                 ),
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 child: Column(
                   children: [
                     Container(
-                      width: 40,
+                      width: 44,
                       height: 4,
-                      margin: const EdgeInsets.only(bottom: 12),
+                      margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade600,
+                        color: Colors.grey.shade300,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -80,9 +77,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> with SingleTickerPr
                       autofocus: true,
                       decoration: InputDecoration(
                         hintText: 'Film veya dizi ara...',
-                        prefixIcon: const Icon(Icons.search),
+                        prefixIcon: const Icon(Icons.search_rounded, size: 20),
                         suffixIcon: IconButton(
-                          icon: const Icon(Icons.clear),
+                          icon: const Icon(Icons.clear, size: 18),
                           onPressed: () {
                             _searchController.clear();
                             context.read<CreatePostCubit>().searchMedia('');
@@ -93,21 +90,23 @@ class _CreatePostScreenState extends State<CreatePostScreen> with SingleTickerPr
                         context.read<CreatePostCubit>().searchMedia(val);
                       },
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     Expanded(
                       child: BlocBuilder<CreatePostCubit, CreatePostState>(
                         builder: (context, state) {
                           if (state is CreatePostSearching) {
-                            return const Center(child: CircularProgressIndicator());
+                            return const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor));
                           }
                           if (state is CreatePostSearchResults) {
                             final list = state.results;
                             if (list.isEmpty) {
-                              return const Center(child: Text('Sonuç bulunamadı.'));
+                              return Center(
+                                child: Text('Sonuç bulunamadı.', style: TextStyle(color: AppTheme.mutedText)),
+                              );
                             }
                             return ListView.separated(
                               itemCount: list.length,
-                              separatorBuilder: (_, __) => const Divider(height: 1),
+                              separatorBuilder: (_, __) => const SizedBox(height: 10),
                               itemBuilder: (context, index) {
                                 final item = list[index];
                                 final title = item['title'] ?? item['name'] ?? 'İsimsiz';
@@ -115,33 +114,75 @@ class _CreatePostScreenState extends State<CreatePostScreen> with SingleTickerPr
                                 final type = item['media_type'] == 'tv' ? 'Dizi' : 'Film';
                                 final year = (item['release_date'] ?? item['first_air_date'] ?? '').toString();
 
-                                return ListTile(
-                                  leading: ClipRRect(
-                                    borderRadius: BorderRadius.circular(6),
-                                    child: poster != null
-                                        ? Image.network(
-                                            AppConstants.getPosterUrl(poster),
-                                            width: 45,
-                                            height: 65,
-                                            fit: BoxFit.cover,
-                                          )
-                                        : Container(
-                                            width: 45,
-                                            height: 65,
-                                            color: Colors.grey.shade800,
-                                            child: const Icon(Icons.movie, size: 20),
-                                          ),
-                                  ),
-                                  title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                  subtitle: Text('$type • ${year.length >= 4 ? year.substring(0, 4) : ''}'),
-                                  trailing: const Icon(Icons.add_circle_outline, color: Colors.redAccent),
+                                return InkWell(
                                   onTap: () => _onMediaSelected(item),
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: isDark ? const Color(0xFF13151D) : const Color(0xFFF7F8FA),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: isDark ? AppTheme.darkCardBorder : AppTheme.borderColor,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius: BorderRadius.circular(10),
+                                          child: poster != null
+                                              ? Image.network(
+                                                  AppConstants.getPosterUrl(poster),
+                                                  width: 48,
+                                                  height: 68,
+                                                  fit: BoxFit.cover,
+                                                )
+                                              : Container(
+                                                  width: 48,
+                                                  height: 68,
+                                                  color: Colors.grey.shade300,
+                                                  child: const Icon(Icons.movie, size: 24, color: Colors.grey),
+                                                ),
+                                        ),
+                                        const SizedBox(width: 14),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                title,
+                                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: titleColor),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                '$type • ${year.length >= 4 ? year.substring(0, 4) : ''}',
+                                                style: TextStyle(color: AppTheme.mutedText, fontSize: 13),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.primaryColor.withOpacity(0.12),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(Icons.add, color: AppTheme.primaryColor, size: 18),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 );
                               },
                             );
                           }
-                          return const Center(
-                            child: Text('Aramak için film veya dizi adı yazın.'),
+                          return Center(
+                            child: Text(
+                              'Aramak için bir film veya dizi adı yazın.',
+                              style: TextStyle(color: AppTheme.mutedText, fontSize: 14),
+                            ),
                           );
                         },
                       ),
@@ -157,14 +198,13 @@ class _CreatePostScreenState extends State<CreatePostScreen> with SingleTickerPr
   }
 
   void _resetForm() {
-    _selectedMedia = null;
-    _quoteController.clear();
-    _contentController.clear();
-    _searchController.clear();
-    _rating = 8.0;
-    if (mounted) {
-      setState(() {});
-    }
+    setState(() {
+      _selectedMedia = null;
+      _quoteController.clear();
+      _contentController.clear();
+      _searchController.clear();
+      _rating = 8.0;
+    });
   }
 
   Future<void> _submitPost() async {
@@ -177,20 +217,20 @@ class _CreatePostScreenState extends State<CreatePostScreen> with SingleTickerPr
       return;
     }
 
-    final isQuote = _tabController.index == 0;
+    final isQuote = _selectedTab == 0;
     final quoteText = _quoteController.text.trim();
     final content = _contentController.text.trim();
 
     if (isQuote && quoteText.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lütfen bir replik yazın.')),
+        const SnackBar(content: Text('Lütfen bir replik yazın.'), backgroundColor: Colors.redAccent),
       );
       return;
     }
 
     if (!isQuote && content.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lütfen yorumunuzu yazın.')),
+        const SnackBar(content: Text('Lütfen düşüncelerinizi / yorumunuzu yazın.'), backgroundColor: Colors.redAccent),
       );
       return;
     }
@@ -211,7 +251,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> with SingleTickerPr
       context.read<FeedCubit>().fetchFeed();
       context.read<ProfileCubit>().loadProfile();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Paylaşımınız başarıyla yayınlandı! 🎉')),
+        const SnackBar(
+          content: Text('Paylaşımınız yayınlandı! ⭐'),
+          backgroundColor: Color(0xFF2ECC71),
+        ),
       );
       context.go('/feed');
     }
@@ -219,27 +262,40 @@ class _CreatePostScreenState extends State<CreatePostScreen> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? AppTheme.darkBg : AppTheme.lightBg;
+    final titleColor = isDark ? Colors.white : AppTheme.darkText;
+    final mutedColor = isDark ? Colors.white60 : AppTheme.mutedText;
+
     final loc = AppLocalizations.of(context);
     final authState = context.watch<AuthCubit>().state;
 
     if (authState is! Authenticated) {
       return Scaffold(
-        appBar: AppBar(title: Text(loc.translate('new_post'))),
+        backgroundColor: bg,
+        appBar: AppBar(
+          backgroundColor: bg,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: titleColor),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text('Yeni Paylaşım', style: TextStyle(color: titleColor, fontWeight: FontWeight.w800)),
+        ),
         body: Center(
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(28),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.lock_outline_rounded, size: 64, color: theme.colorScheme.primary),
+                Icon(Icons.lock_outline_rounded, size: 54, color: AppTheme.primaryColor),
                 const SizedBox(height: 16),
                 Text(
                   loc.translate('must_login'),
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: titleColor),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: () => context.push('/login'),
                   child: Text(loc.translate('login')),
@@ -252,57 +308,90 @@ class _CreatePostScreenState extends State<CreatePostScreen> with SingleTickerPr
     }
 
     return Scaffold(
+      backgroundColor: bg,
       appBar: AppBar(
-        title: Text(loc.translate('new_post')),
+        backgroundColor: bg,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: titleColor),
+          onPressed: () => Navigator.pop(context),
+        ),
+        centerTitle: true,
+        title: Text(
+          'Yeni Paylaşım',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: titleColor, letterSpacing: -0.3),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Formu Temizle',
+            icon: Icon(Icons.refresh_rounded, size: 22, color: titleColor),
+            tooltip: 'Temizle',
             onPressed: _resetForm,
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: theme.colorScheme.primary,
-          labelColor: theme.colorScheme.primary,
-          tabs: [
-            Tab(icon: const Icon(Icons.format_quote), text: loc.translate('post_quote')),
-            Tab(icon: const Icon(Icons.rate_review), text: loc.translate('post_review')),
-          ],
-        ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Movie Explorer Tarzı Kategori Hapları (Replik Paylaş / İnceleme Yaz)
+            Row(
+              children: [
+                _buildTabChip('Replik Paylaş', 0, _selectedTab == 0, isDark),
+                const SizedBox(width: 8),
+                _buildTabChip('İnceleme & Puan', 1, _selectedTab == 1, isDark),
+              ],
+            ),
+            const SizedBox(height: 20),
+
             // Seçilen Film / Dizi Kutusu veya Ekleme Butonu
             if (_selectedMedia == null)
-              OutlinedButton.icon(
-                onPressed: _showMediaSearchDialog,
-                icon: const Icon(Icons.movie_creation_outlined),
-                label: Text(loc.translate('search_media')),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.all(16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              InkWell(
+                onTap: _showMediaSearchDialog,
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppTheme.darkCard : const Color(0xFFF7F8FA),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isDark ? AppTheme.darkCardBorder : AppTheme.borderColor,
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.movie_creation_outlined, color: AppTheme.primaryColor, size: 22),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Film veya Dizi Seç (İsteğe Bağlı)',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: titleColor,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               )
             else
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: theme.cardTheme.color,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: theme.colorScheme.primary.withOpacity(0.5)),
+                  color: isDark ? AppTheme.darkCard : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppTheme.primaryColor.withOpacity(0.5), width: 1.5),
                 ),
                 child: Row(
                   children: [
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(10),
                       child: Image.network(
                         AppConstants.getPosterUrl(_selectedMedia!['poster_path']),
-                        width: 50,
-                        height: 75,
+                        width: 48,
+                        height: 70,
                         fit: BoxFit.cover,
                       ),
                     ),
@@ -313,125 +402,126 @@ class _CreatePostScreenState extends State<CreatePostScreen> with SingleTickerPr
                         children: [
                           Text(
                             _selectedMedia!['title'] ?? _selectedMedia!['name'] ?? '',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                            maxLines: 2,
+                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: titleColor),
+                            maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 4),
                           Text(
                             _selectedMedia!['media_type'] == 'tv' ? 'Dizi' : 'Film',
-                            style: TextStyle(color: theme.textTheme.bodySmall?.color),
+                            style: TextStyle(color: mutedColor, fontSize: 13),
                           ),
                         ],
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, color: Colors.redAccent),
+                      icon: const Icon(Icons.close_rounded, color: Colors.redAccent, size: 20),
                       onPressed: () => setState(() => _selectedMedia = null),
                     ),
                   ],
                 ),
               ),
 
-            const SizedBox(height: 18),
+            const SizedBox(height: 20),
 
-            // Tab View İçerikleri
-            AnimatedBuilder(
-              animation: _tabController,
-              builder: (context, _) {
-                final isQuote = _tabController.index == 0;
-
-                if (isQuote) {
-                  // Replik Paylaşım Alanı
-                  return Column(
-                    children: [
-                      TextField(
-                        controller: _quoteController,
-                        maxLines: 3,
-                        decoration: InputDecoration(
-                          hintText: loc.translate('write_quote'),
-                          prefixIcon: const Icon(Icons.format_quote),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      TextField(
-                        controller: _contentController,
-                        maxLines: 2,
-                        decoration: const InputDecoration(
-                          hintText: 'Replik hakkında yorumunuz veya sahne detayı (isteğe bağlı)...',
-                          prefixIcon: Icon(Icons.comment_outlined),
-                        ),
-                      ),
-                    ],
-                  );
-                } else {
-                  // Yorum ve Puan Alanı
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Puan Seçici
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Puanınız:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.amber.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(16),
+            // Replik mi İnceleme mi?
+            if (_selectedTab == 0) ...[
+              TextField(
+                controller: _quoteController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  hintText: 'Unutulmaz bir film repliği yazın...',
+                  prefixIcon: Icon(Icons.format_quote_rounded, size: 22),
+                ),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: _contentController,
+                maxLines: 2,
+                decoration: const InputDecoration(
+                  hintText: 'Sahne veya karakter hakkında notunuz (isteğe bağlı)...',
+                  prefixIcon: Icon(Icons.edit_note_rounded, size: 22),
+                ),
+              ),
+            ] else ...[
+              // Puan Seçici (Amber)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark ? AppTheme.darkCard : const Color(0xFFF7F8FA),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isDark ? AppTheme.darkCardBorder : AppTheme.borderColor,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Puanınız:', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: titleColor)),
+                        Row(
+                          children: [
+                            const Icon(Icons.star_rounded, color: AppTheme.starColor, size: 22),
+                            const SizedBox(width: 4),
+                            Text(
+                              '$_rating / 10',
+                              style: const TextStyle(fontWeight: FontWeight.w800, color: AppTheme.starColor, fontSize: 17),
                             ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.star_rounded, color: Colors.amber, size: 20),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '$_rating / 10',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.amber, fontSize: 16),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      Slider(
-                        value: _rating,
-                        min: 1.0,
-                        max: 10.0,
-                        divisions: 18, // 0.5 aralıklarla
-                        activeColor: Colors.amber,
-                        label: '$_rating',
-                        onChanged: (val) => setState(() => _rating = (val * 2).round() / 2),
-                      ),
-                      const SizedBox(height: 14),
-                      TextField(
-                        controller: _contentController,
-                        maxLines: 4,
-                        decoration: InputDecoration(
-                          hintText: loc.translate('write_review'),
-                          prefixIcon: const Icon(Icons.rate_review_outlined),
+                          ],
                         ),
-                      ),
-                    ],
-                  );
-                }
-              },
-            ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Slider(
+                      value: _rating,
+                      min: 1.0,
+                      max: 10.0,
+                      divisions: 18,
+                      activeColor: AppTheme.primaryColor,
+                      label: '$_rating',
+                      onChanged: (val) => setState(() => _rating = (val * 2).round() / 2),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: _contentController,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  hintText: 'Film hakkındaki detaylı düşünceleriniz ve eleştiriniz...',
+                  prefixIcon: Icon(Icons.rate_review_outlined, size: 22),
+                ),
+              ),
+            ],
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 28),
 
             // Paylaş Butonu
             BlocBuilder<CreatePostCubit, CreatePostState>(
               builder: (context, state) {
                 final isSubmitting = state is CreatePostSubmitting;
-                return ElevatedButton(
-                  onPressed: isSubmitting ? null : _submitPost,
-                  child: isSubmitting
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                        )
-                      : Text(loc.translate('share')),
+                return SizedBox(
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: isSubmitting ? null : _submitPost,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: isSubmitting
+                        ? const SizedBox(
+                            height: 22,
+                            width: 22,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                          )
+                        : const Text(
+                            'Yayınla',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                          ),
+                  ),
                 );
               },
             ),
@@ -440,5 +530,30 @@ class _CreatePostScreenState extends State<CreatePostScreen> with SingleTickerPr
       ),
     );
   }
-}
 
+  Widget _buildTabChip(String title, int index, bool isSelected, bool isDark) {
+    return GestureDetector(
+      onTap: () => setState(() => _selectedTab = index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (isDark ? Colors.white : AppTheme.darkText)
+              : (isDark ? AppTheme.darkCard : const Color(0xFFF4F5F8)),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          title,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            color: isSelected
+                ? (isDark ? AppTheme.darkText : Colors.white)
+                : (isDark ? Colors.white60 : AppTheme.mutedText),
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -94,13 +94,31 @@ class ApiClient {
   }
 
   dynamic _processResponse(http.Response response) {
-    final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+    dynamic decoded;
+    try {
+      decoded = jsonDecode(utf8.decode(response.bodyBytes));
+    } catch (_) {
+      decoded = null;
+    }
+
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      return decoded;
+      return decoded ?? {'status': true};
     } else {
-      final message = decoded is Map && decoded.containsKey('message')
-          ? decoded['message']
-          : 'Bir hata oluştu (HTTP ${response.statusCode})';
+      String message = 'Bir hata oluştu (HTTP ${response.statusCode})';
+      if (decoded is Map) {
+        if (decoded.containsKey('errors') && decoded['errors'] != null) {
+          final errs = decoded['errors'];
+          if (errs is Map && errs.isNotEmpty) {
+            message = errs.values.first.toString();
+          } else if (errs is List && errs.isNotEmpty) {
+            message = errs.first.toString();
+          } else if (errs is String && errs.isNotEmpty) {
+            message = errs;
+          }
+        } else if (decoded.containsKey('message') && decoded['message'] != null) {
+          message = decoded['message'].toString();
+        }
+      }
       throw Exception(message);
     }
   }

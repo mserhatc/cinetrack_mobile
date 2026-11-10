@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/localization/app_localizations.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/avatar_picker_dialog.dart';
 import '../cubit/auth_cubit.dart';
 
@@ -19,6 +19,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   String? _selectedAvatar;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -37,12 +38,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (username.isEmpty || email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lütfen zorunlu alanları doldurun.')),
+        const SnackBar(
+          content: Text('Lütfen kullanıcı adı, e-posta ve şifre alanlarını doldurun.'),
+          backgroundColor: Colors.redAccent,
+        ),
       );
       return;
     }
 
-    final success = await context.read<AuthCubit>().register(
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Şifreniz en az 6 karakter olmalıdır.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final authCubit = context.read<AuthCubit>();
+    final success = await authCubit.register(
       username,
       email,
       password,
@@ -50,11 +67,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
       avatar: _selectedAvatar,
     );
 
-    if (success && mounted) {
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kayıt başarılı! Hoş geldiniz.')),
+        const SnackBar(
+          content: Text('Kayıt başarılı! Hoş geldiniz. ⭐'),
+          backgroundColor: Color(0xFF2ECC71),
+        ),
       );
       context.go('/profile');
+    } else {
+      final state = authCubit.state;
+      String errorMsg = 'Kayıt yapılamadı. Lütfen bilgilerinizi kontrol edin.';
+      if (state is Unauthenticated && state.message != null && state.message!.isNotEmpty) {
+        errorMsg = state.message!;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMsg),
+          backgroundColor: Colors.redAccent,
+          duration: const Duration(seconds: 4),
+        ),
+      );
     }
   }
 
@@ -68,148 +104,198 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final loc = AppLocalizations.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final bg = isDark ? AppTheme.darkBg : AppTheme.lightBg;
+    final titleColor = isDark ? Colors.white : AppTheme.darkText;
+    final mutedColor = isDark ? Colors.white60 : AppTheme.mutedText;
 
     return Scaffold(
-      appBar: AppBar(title: Text(loc.translate('register'))),
+      backgroundColor: bg,
+      appBar: AppBar(
+        backgroundColor: bg,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: titleColor),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'Yeni Hesap Oluştur',
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Film ve dizi severler topluluğuna katıl!',
-                style: TextStyle(color: theme.textTheme.bodySmall?.color),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-
-              // Avatar Seçimi (İsteğe Bağlı)
+              // Logo & Başlık
               Center(
-                child: Stack(
-                  children: [
-                    GestureDetector(
-                      onTap: _pickAvatar,
-                      child: CircleAvatar(
-                        radius: 46,
-                        backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
-                        backgroundImage: _selectedAvatar != null && _selectedAvatar!.isNotEmpty
-                            ? NetworkImage(_selectedAvatar!)
-                            : null,
-                        child: _selectedAvatar == null || _selectedAvatar!.isEmpty
-                            ? Icon(Icons.person, size: 50, color: theme.colorScheme.primary)
-                            : null,
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: GestureDetector(
-                        onTap: _pickAvatar,
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: theme.scaffoldBackgroundColor, width: 2),
-                          ),
-                          child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 6),
-              Center(
-                child: TextButton.icon(
-                  onPressed: _pickAvatar,
-                  icon: const Icon(Icons.add_photo_alternate_outlined, size: 18),
-                  label: Text(
-                    _selectedAvatar == null ? 'Profil Fotoğrafı Ekle (İsteğe bağlı)' : 'Fotoğrafı Değiştir',
-                    style: const TextStyle(fontSize: 13),
+                child: Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withOpacity(0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.movie_filter_rounded, color: AppTheme.primaryColor, size: 30),
                   ),
                 ),
               ),
               const SizedBox(height: 16),
+              Text(
+                'Hesap Oluştur',
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
+                  color: titleColor,
+                  letterSpacing: -0.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Film ve dizi dünyasındaki keşiflerini kaydet.',
+                style: TextStyle(fontSize: 13, color: mutedColor),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
 
+              // Avatar Seçici
+              Center(
+                child: GestureDetector(
+                  onTap: _pickAvatar,
+                  child: Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 42,
+                        backgroundColor: isDark ? AppTheme.darkCard : const Color(0xFFF2F4F7),
+                        backgroundImage: (_selectedAvatar != null && _selectedAvatar!.isNotEmpty)
+                            ? NetworkImage(_selectedAvatar!)
+                            : null,
+                        child: (_selectedAvatar == null || _selectedAvatar!.isEmpty)
+                            ? Icon(Icons.person_outline_rounded, size: 40, color: mutedColor)
+                            : null,
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: bg, width: 2),
+                          ),
+                          child: const Icon(Icons.camera_alt_rounded, size: 14, color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Kullanıcı Adı
               TextField(
                 controller: _usernameController,
+                textInputAction: TextInputAction.next,
                 decoration: InputDecoration(
-                  labelText: loc.translate('username'),
-                  prefixIcon: const Icon(Icons.alternate_email),
+                  labelText: 'Kullanıcı Adı *',
+                  hintText: 'örn: sinemasever',
+                  prefixIcon: Icon(Icons.alternate_email_rounded, size: 20, color: mutedColor),
                 ),
               ),
               const SizedBox(height: 14),
 
+              // Ad Soyad
               TextField(
                 controller: _fullNameController,
+                textInputAction: TextInputAction.next,
                 decoration: InputDecoration(
-                  labelText: loc.translate('full_name'),
-                  prefixIcon: const Icon(Icons.badge_outlined),
+                  labelText: 'Ad Soyad',
+                  hintText: 'örn: Serhat Çakır',
+                  prefixIcon: Icon(Icons.person_outline_rounded, size: 20, color: mutedColor),
                 ),
               ),
               const SizedBox(height: 14),
 
+              // E-posta
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
                 decoration: InputDecoration(
-                  labelText: loc.translate('email'),
-                  prefixIcon: const Icon(Icons.email_outlined),
+                  labelText: 'E-posta *',
+                  hintText: 'ornek@email.com',
+                  prefixIcon: Icon(Icons.mail_outline_rounded, size: 20, color: mutedColor),
                 ),
               ),
               const SizedBox(height: 14),
 
+              // Şifre
               TextField(
                 controller: _passwordController,
                 obscureText: _obscurePassword,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _submitRegister(),
                 decoration: InputDecoration(
-                  labelText: loc.translate('password'),
-                  prefixIcon: const Icon(Icons.lock_outline),
+                  labelText: 'Şifre * (En az 6 karakter)',
+                  prefixIcon: Icon(Icons.lock_outline_rounded, size: 20, color: mutedColor),
                   suffixIcon: IconButton(
-                    icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                    icon: Icon(
+                      _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                      size: 20,
+                      color: mutedColor,
+                    ),
                     onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                   ),
                 ),
               ),
               const SizedBox(height: 24),
 
-              BlocConsumer<AuthCubit, AuthState>(
-                listener: (context, state) {
-                  if (state is Unauthenticated && state.message != null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(state.message!), backgroundColor: Colors.redAccent),
-                    );
-                  }
-                },
-                builder: (context, state) {
-                  final isLoading = state is AuthLoading;
-                  return ElevatedButton(
-                    onPressed: isLoading ? null : _submitRegister,
-                    child: isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                          )
-                        : Text(loc.translate('register')),
-                  );
-                },
+              // Kayıt Ol Butonu
+              SizedBox(
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _submitRegister,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 22,
+                          width: 22,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                        )
+                      : const Text(
+                          'Kayıt Ol',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                        ),
+                ),
               ),
-
               const SizedBox(height: 16),
-              TextButton(
-                onPressed: () => context.pop(),
-                child: Text(loc.translate('already_have_account')),
+
+              // Zaten hesabım var
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Zaten hesabınız var mı? ',
+                    style: TextStyle(color: mutedColor, fontSize: 13),
+                  ),
+                  GestureDetector(
+                    onTap: () => context.push('/login'),
+                    child: const Text(
+                      'Giriş Yap',
+                      style: TextStyle(
+                        color: AppTheme.primaryColor,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -218,4 +304,3 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 }
-
