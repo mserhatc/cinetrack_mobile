@@ -119,9 +119,9 @@ class AppRouter {
         path: '/watched-list/:type/:userId',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) {
-          final type = state.pathParameters['type'] ?? 'movies';
+          final type = state.pathParameters['type'] ?? 'movie';
           final userId = int.tryParse(state.pathParameters['userId'] ?? '0') ?? 0;
-          return WatchedListScreen(type: type, userId: userId);
+          return WatchedListScreen(mediaType: type, userId: userId);
         },
       ),
     ],

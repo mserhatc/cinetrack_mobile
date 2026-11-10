@@ -223,3 +223,4 @@ class MovieExplorerCard extends StatelessWidget {
     );
   }
 }
+

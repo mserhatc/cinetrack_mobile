@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/cubit/auth_cubit.dart';
 import '../../feed/cubit/feed_cubit.dart';
@@ -154,7 +153,6 @@ class _MediaDetailScreenState extends State<MediaDetailScreen> {
     final bg = isDark ? AppTheme.darkBg : AppTheme.lightBg;
     final titleColor = isDark ? Colors.white : AppTheme.darkText;
     final mutedColor = isDark ? Colors.white60 : AppTheme.mutedText;
-    final isMovie = widget.mediaType == 'movie';
 
     return Scaffold(
       backgroundColor: bg,

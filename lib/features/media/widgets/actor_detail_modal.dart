@@ -209,3 +209,4 @@ class ActorDetailModal extends StatelessWidget {
     );
   }
 }
+

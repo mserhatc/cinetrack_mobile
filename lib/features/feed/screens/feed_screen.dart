@@ -43,7 +43,6 @@ class _FeedScreenState extends State<FeedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final loc = AppLocalizations.of(context);
     final isDark = context.watch<ThemeCubit>().isDarkMode;
     final currentLang = context.watch<LanguageCubit>().state.languageCode;
