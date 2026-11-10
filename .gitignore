@@ -1,0 +1,69 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Environment & Secrets
+.env
+*.env
+!.env.example
+api/.env
+
+# CodeIgniter 4 writable logs & cache
+api/writable/cache/*
+!api/writable/cache/index.html
+api/writable/debugbar/*
+api/writable/logs/*
+!api/writable/logs/index.html
+api/writable/session/*
+!api/writable/session/index.html
+api/writable/uploads/*
+!api/writable/uploads/index.html
+
+# CodeIgniter 3 logs & cache
+api3/logs/*
+!api3/logs/index.html
+api3/cache/*
+!api3/cache/index.html
+
