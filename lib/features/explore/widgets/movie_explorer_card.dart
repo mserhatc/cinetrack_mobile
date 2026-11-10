@@ -28,9 +28,9 @@ class MovieExplorerCard extends StatelessWidget {
     final year = releaseDate.length >= 4 ? releaseDate.substring(0, 4) : '';
     final poster = media['poster_path'];
     final backdrop = media['backdrop_path'];
-    final voteAverage = (media['vote_average'] as num?)?.toDouble() ?? 7.5;
-    
-    // TMDB vote (0-10) scaled to 5 stars
+    final voteAverage = (media['vote_average'] as num?)?.toDouble() ?? 8.0;
+
+    // TMDB puanını 5 yıldıza ölçeklendir
     final starCount = (voteAverage / 2).clamp(1.0, 5.0);
 
     return LayoutBuilder(
@@ -45,13 +45,13 @@ class MovieExplorerCard extends StatelessWidget {
           ),
           child: Column(
             children: [
-              // 1. Üst Sanatsal Görsel & Aşağıya Doğru Kusursuz Beyaz Degrade
+              // 1. Üst Sanatsal Görsel & Aşağıya Doğru Kusursuz Beyaz Fade Geçişi
               Expanded(
                 flex: 12,
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    // Arka Plan Poster / Backdrop
+                    // Film Posteri / Backdrop
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       child: ClipRRect(
@@ -61,7 +61,7 @@ class MovieExplorerCard extends StatelessWidget {
                           fit: BoxFit.cover,
                           alignment: Alignment.topCenter,
                           errorBuilder: (_, __, ___) => Container(
-                            color: Colors.grey.shade200,
+                            color: isDark ? const Color(0xFF1E212B) : Colors.grey.shade100,
                             child: const Center(
                               child: Icon(Icons.movie_outlined, size: 64, color: Colors.grey),
                             ),
@@ -70,7 +70,7 @@ class MovieExplorerCard extends StatelessWidget {
                       ),
                     ),
 
-                    // Yumuşak Beyaz Geçiş Gradyanı (Fade to Card Background)
+                    // Yumuşak Beyaz / Siyah Degrade (Dribbble Fade Efekti)
                     Positioned.fill(
                       child: DecoratedBox(
                         decoration: BoxDecoration(
@@ -79,9 +79,9 @@ class MovieExplorerCard extends StatelessWidget {
                             end: Alignment.bottomCenter,
                             stops: const [0.0, 0.45, 0.75, 1.0],
                             colors: [
-                              cardBg.withOpacity(0.0),
-                              cardBg.withOpacity(0.0),
-                              cardBg.withOpacity(0.7),
+                              cardBg.withValues(alpha: 0.0),
+                              cardBg.withValues(alpha: 0.0),
+                              cardBg.withValues(alpha: 0.7),
                               cardBg,
                             ],
                           ),
@@ -92,7 +92,7 @@ class MovieExplorerCard extends StatelessWidget {
                 ),
               ),
 
-              // 2. Başlık, Yönetmen/Yıl, Yıldızlar ve Play Butonu
+              // 2. Başlık, Yönetmen/Yıl, 5 Yıldız, Amber Play Butonu ve "More ⌄"
               Expanded(
                 flex: 8,
                 child: Padding(
@@ -100,25 +100,30 @@ class MovieExplorerCard extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Film Başlığı
-                      Text(
-                        title,
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                          color: titleColor,
-                          letterSpacing: -0.5,
-                          height: 1.2,
+                      // Film / Dizi Başlığı (The Martian stili kalın ve net)
+                      GestureDetector(
+                        onTap: () => context.push('/media/$mediaType/$id'),
+                        child: Text(
+                          title,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                            color: titleColor,
+                            letterSpacing: -0.5,
+                            height: 1.2,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 6),
 
-                      // Yıl ve Alt Bilgi (2015 · Ridley Scott tarzı)
+                      // Yıl ve Alt Başlık (2015 · Ridley Scott formatı)
                       Text(
-                        year.isNotEmpty ? '$year · ${mediaType == "tv" ? "TV Series" : "Cinema"}' : 'Cinema Feature',
+                        year.isNotEmpty
+                            ? '$year · ${mediaType == "tv" ? "TV Series" : "Cinema Feature"}'
+                            : (mediaType == "tv" ? "TV Series" : "Cinema Feature"),
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 13,
@@ -129,7 +134,7 @@ class MovieExplorerCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 10),
 
-                      // 5'li Yıldız Derecelendirmesi
+                      // 5 Altın Yıldız Derecelendirmesi (★ ★ ★ ★ ★)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: List.generate(5, (index) {
@@ -143,15 +148,17 @@ class MovieExplorerCard extends StatelessWidget {
                               isFilled
                                   ? Icons.star_rounded
                                   : (isHalf ? Icons.star_half_rounded : Icons.star_outline_rounded),
-                              color: isFilled || isHalf ? AppTheme.starColor : (isDark ? Colors.white24 : Colors.grey.shade300),
-                              size: 18,
+                              color: isFilled || isHalf
+                                  ? AppTheme.starColor
+                                  : (isDark ? Colors.white24 : Colors.grey.shade300),
+                              size: 19,
                             ),
                           );
                         }),
                       ),
                       const SizedBox(height: 16),
 
-                      // İkonik Amber Play / Detay Butonu
+                      // İkonik Amber Play / Trailer Butonu
                       GestureDetector(
                         onTap: () {
                           if (onPlayTrailer != null) {
@@ -168,8 +175,8 @@ class MovieExplorerCard extends StatelessWidget {
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: AppTheme.primaryColor.withOpacity(0.35),
-                                blurRadius: 16,
+                                color: AppTheme.primaryColor.withValues(alpha: 0.4),
+                                blurRadius: 18,
                                 offset: const Offset(0, 6),
                               ),
                             ],
@@ -178,26 +185,26 @@ class MovieExplorerCard extends StatelessWidget {
                             child: Icon(
                               Icons.play_arrow_rounded,
                               color: Colors.white,
-                              size: 28,
+                              size: 30,
                             ),
                           ),
                         ),
                       ),
                       const SizedBox(height: 10),
 
-                      // "More" ve Aşağı Ok Göstergesi
+                      // "More ⌄" Detay Açıcı
                       InkWell(
                         onTap: () => context.push('/media/$mediaType/$id'),
                         borderRadius: BorderRadius.circular(12),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
                                 'More',
                                 style: TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: subtitleColor,
                                   letterSpacing: 0.4,
@@ -223,4 +230,3 @@ class MovieExplorerCard extends StatelessWidget {
     );
   }
 }
-

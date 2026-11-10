@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // Movie Explorer Dribbble Renk Paleti (Temiz, Beyaz, Amber & Derin Slate)
-  static const Color primaryColor = Color(0xFFF5A623); // Amber / Altın Sarısı
-  static const Color accentColor = Color(0xFFFF9500);  // Canlı Turuncu-Sarı
-  static const Color starColor = Color(0xFFF5A623);    // Yıldız Rengi
-  static const Color darkText = Color(0xFF14171A);     // Ana Metin (Koyu Grafit)
-  static const Color mutedText = Color(0xFF8A90A0);    // İkincil Metin (Yumuşak Gri)
-  static const Color lightBg = Color(0xFFFFFFFF);      // Saf Beyaz Arka Plan
-  static const Color lightCardBg = Color(0xFFFFFFFF);  // Beyaz Kart
-  static const Color borderColor = Color(0xFFEEEEF2);  // İnce Sınır Rengi
+  // Movie Explorer Dribbble Renk Paleti (Saf Beyaz, Amber & Derin Grafit)
+  static const Color primaryColor = Color(0xFFF5A623); // İkonik Amber / Altın Sarısı
+  static const Color accentColor = Color(0xFFFF9500);  // Canlı Turuncu
+  static const Color starColor = Color(0xFFF5A623);    // 5 Yıldız Amber Rengi
+  static const Color darkText = Color(0xFF14171A);     // Ana Başlık Metni (Derin Grafit)
+  static const Color mutedText = Color(0xFF8A90A0);    // Yumuşak Nötr Gri Alt Metin
+  static const Color lightBg = Color(0xFFFFFFFF);      // Saf Beyaz Zemin
+  static const Color lightCardBg = Color(0xFFFFFFFF);  // Beyaz Kart Zemin
+  static const Color borderColor = Color(0xFFF0F1F5);  // İnce Zarif Kart Sınırı
 
   // Karanlık Mod (Dark Cinema Minimal)
-  static const Color darkBg = Color(0xFF0F1015);
-  static const Color darkCard = Color(0xFF171922);
+  static const Color darkBg = Color(0xFF0D0E12);
+  static const Color darkCard = Color(0xFF161820);
   static const Color darkCardBorder = Color(0xFF232634);
 
   static final ThemeData lightTheme = ThemeData(
@@ -23,14 +23,14 @@ class AppTheme {
       primary: primaryColor,
       secondary: accentColor,
       surface: lightCardBg,
-      surfaceContainerHighest: Color(0xFFF6F7F9),
+      surfaceContainerHighest: Color(0xFFF7F8FA),
       onSurface: darkText,
     ),
     scaffoldBackgroundColor: lightBg,
     cardTheme: CardThemeData(
       color: lightCardBg,
       elevation: 0,
-      shadowColor: Colors.black.withOpacity(0.04),
+      shadowColor: Colors.black.withValues(alpha: 0.04),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
         side: const BorderSide(color: borderColor, width: 1),
@@ -81,7 +81,7 @@ class AppTheme {
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
       ),
@@ -152,7 +152,7 @@ class AppTheme {
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
       ),

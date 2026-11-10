@@ -57,65 +57,90 @@ class _MediaDetailScreenState extends State<MediaDetailScreen> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            final theme = Theme.of(context);
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            final sheetBg = isDark ? AppTheme.darkCard : Colors.white;
             final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
             return Container(
               padding: EdgeInsets.only(
                 left: 24,
                 right: 24,
-                top: 24,
+                top: 20,
                 bottom: 24 + bottomInset,
               ),
               decoration: BoxDecoration(
-                color: theme.scaffoldBackgroundColor,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                color: sheetBg,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
                   Text(
-                    'Puan Ver & Yorum Yaz',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                    'Add a review',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: isDark ? Colors.white : AppTheme.darkText,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     title,
-                    style: const TextStyle(fontSize: 13, color: AppTheme.mutedText),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.star_rounded, color: AppTheme.primaryColor, size: 30),
-                      const SizedBox(width: 8),
-                      Text(
-                        '$selectedRating / 10',
-                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppTheme.primaryColor),
-                      ),
-                    ],
-                  ),
-                  Slider(
-                    value: selectedRating,
-                    min: 1.0,
-                    max: 10.0,
-                    divisions: 18,
-                    activeColor: AppTheme.primaryColor,
-                    label: '$selectedRating',
-                    onChanged: (val) {
-                      setModalState(() => selectedRating = (val * 2).round() / 2);
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: reviewController,
-                    maxLines: 3,
-                    decoration: const InputDecoration(
-                      hintText: 'Film hakkındaki düşünceleriniz (Akışta da paylaşılır)...',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.white70 : AppTheme.mutedText,
                     ),
                   ),
                   const SizedBox(height: 20),
+
+                  // Yıldız Seçici
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(5, (index) {
+                      final starValue = (index + 1) * 2.0;
+                      final isSelected = selectedRating >= starValue;
+                      return IconButton(
+                        icon: Icon(
+                          isSelected ? Icons.star_rounded : Icons.star_outline_rounded,
+                          color: isSelected ? AppTheme.starColor : Colors.grey.shade300,
+                          size: 36,
+                        ),
+                        onPressed: () {
+                          setModalState(() => selectedRating = starValue);
+                        },
+                      );
+                    }),
+                  ),
+                  Center(
+                    child: Text(
+                      '${selectedRating.toStringAsFixed(1)} / 10',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.starColor),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  TextField(
+                    controller: reviewController,
+                    maxLines: 4,
+                    decoration: InputDecoration(
+                      hintText: 'Film hakkındaki düşünceleriniz...',
+                      fillColor: isDark ? const Color(0xFF13151D) : const Color(0xFFF7F8FA),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
                   ElevatedButton(
                     onPressed: () async {
                       Navigator.pop(ctx);
@@ -131,11 +156,17 @@ class _MediaDetailScreenState extends State<MediaDetailScreen> {
                         this.context.read<FeedCubit>().fetchFeed();
                         this.context.read<ProfileCubit>().loadProfile();
                         ScaffoldMessenger.of(this.context).showSnackBar(
-                          const SnackBar(content: Text('Puanınız ve yorumunuz kaydedildi! ⭐')),
+                          const SnackBar(content: Text('Yorumunuz kaydedildi! ⭐')),
                         );
                       }
                     },
-                    child: const Text('Kaydet ve Paylaş'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: const Text('Send Review', style: TextStyle(fontWeight: FontWeight.w700)),
                   ),
                 ],
               ),
@@ -183,14 +214,13 @@ class _MediaDetailScreenState extends State<MediaDetailScreen> {
             final title = m['title'] ?? m['name'] ?? '';
             final overview = m['overview'] ?? 'No storyline available.';
             final poster = m['poster_path'];
-            final backdrop = m['backdrop_path'];
             final voteAverage = (m['vote_average'] as num?)?.toDouble() ?? 8.0;
             final releaseDate = (m['release_date'] ?? m['first_air_date'] ?? '').toString();
             final year = releaseDate.length >= 4 ? releaseDate.substring(0, 4) : '';
             final genresList = (m['genres'] as List?)?.map((g) => g['name'].toString()).toList() ?? [];
-            final genresText = genresList.join(', ');
+            final genresString = genresList.isNotEmpty ? genresList.join(', ') : 'Drama, Feature Film';
 
-            // Ekip & Yönetmen
+            // Ekip & Oyuncular
             final credits = m['credits'];
             final castList = (credits?['cast'] as List?)?.take(15).toList() ?? [];
             final crewList = (credits?['crew'] as List?) ?? [];
@@ -209,497 +239,336 @@ class _MediaDetailScreenState extends State<MediaDetailScreen> {
             final revenueNum = m['revenue'] as num?;
 
             final watchStatus = state.watchStatus; // 'watched', 'plan_to_watch', null
-            final isWatched = watchStatus == 'watched';
             final isInWatchlist = watchStatus == 'plan_to_watch';
 
-            return CustomScrollView(
-              slivers: [
-                // Dribbble "American Beauty" Üst Barı
-                SliverAppBar(
-                  pinned: true,
-                  backgroundColor: bg,
-                  surfaceTintColor: Colors.transparent,
-                  leading: IconButton(
-                    icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: titleColor),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  centerTitle: true,
-                  title: Column(
-                    children: [
-                      Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: titleColor,
-                          letterSpacing: -0.3,
+            return SafeArea(
+              child: Column(
+                children: [
+                  // 1. Dribbble "American Beauty" Üst Başlık Çubuğu:
+                  // < Geri Oku   |   Başlık & (1999 · Sam Mendes)   |   ♡ Kalp İkonu
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Geri Oku
+                        IconButton(
+                          icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: titleColor),
+                          onPressed: () => Navigator.pop(context),
                         ),
-                      ),
-                      Text(
-                        '${year.isNotEmpty ? year : "Cinema"}${directors.isNotEmpty ? " · $directors" : ""}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: mutedColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                  actions: [
-                    IconButton(
-                      icon: Icon(
-                        isInWatchlist ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                        color: isInWatchlist ? Colors.redAccent : titleColor,
-                        size: 22,
-                      ),
-                      onPressed: () async {
-                        final newStatus = isInWatchlist ? 'remove' : 'plan_to_watch';
-                        await context.read<MediaDetailCubit>().setWatchStatus(
-                          tmdbId: widget.id,
-                          mediaType: widget.mediaType,
-                          title: title,
-                          posterPath: poster ?? '',
-                          status: newStatus,
-                        );
-                        if (mounted) {
-                          context.read<ProfileCubit>().loadProfile();
-                        }
-                      },
-                    ),
-                  ],
-                ),
 
-                // Hero Sanatsal Görsel & Aşağıya Yumuşak Fade
-                SliverToBoxAdapter(
-                  child: Stack(
-                    children: [
-                      Container(
-                        height: 280,
-                        width: double.infinity,
-                        foregroundDecoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            stops: const [0.0, 0.4, 0.75, 1.0],
-                            colors: [
-                              bg.withOpacity(0.0),
-                              bg.withOpacity(0.0),
-                              bg.withOpacity(0.7),
-                              bg,
+                        // Ortalanmış Başlık ve Yönetmen/Yıl
+                        Expanded(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                title,
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w800,
+                                  color: titleColor,
+                                  letterSpacing: -0.3,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${year.isNotEmpty ? year : "Cinema"}${directors.isNotEmpty ? " · $directors" : ""}',
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: mutedColor,
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                        child: Image.network(
-                          AppConstants.getBackdropUrl(backdrop ?? poster),
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(color: Colors.grey.shade200),
-                        ),
-                      ),
 
-                      // Ortalanmış Başlık ve Yıldızlar (Dribbble detay banner)
-                      Positioned(
-                        bottom: 12,
-                        left: 20,
-                        right: 20,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(Icons.star_rounded, color: AppTheme.primaryColor, size: 24),
-                                const SizedBox(width: 6),
-                                Text(
-                                  voteAverage.toStringAsFixed(1),
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w800,
-                                    color: titleColor,
-                                  ),
-                                ),
-                                Text(
-                                  ' / 10',
-                                  style: TextStyle(fontSize: 12, color: mutedColor),
-                                ),
-                              ],
-                            ),
-
-                            // Puan Ver Butonu
-                            OutlinedButton.icon(
-                              onPressed: () => _showRatingModal(m),
-                              icon: const Icon(Icons.rate_review_outlined, size: 16, color: AppTheme.primaryColor),
-                              label: Text(
-                                state.userRating != null ? 'Puan: ${state.userRating}' : 'Puan Ver',
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-                              ),
-                              style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: AppTheme.primaryColor),
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                              ),
-                            ),
-                          ],
+                        // Sağ Kalp (Watchlist / Favori)
+                        IconButton(
+                          icon: Icon(
+                            isInWatchlist ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                            color: isInWatchlist ? Colors.redAccent : titleColor,
+                            size: 22,
+                          ),
+                          onPressed: () async {
+                            final newStatus = isInWatchlist ? 'remove' : 'plan_to_watch';
+                            await context.read<MediaDetailCubit>().setWatchStatus(
+                              tmdbId: widget.id,
+                              mediaType: widget.mediaType,
+                              title: title,
+                              posterPath: poster ?? '',
+                              status: newStatus,
+                            );
+                            if (mounted) {
+                              context.read<ProfileCubit>().loadProfile();
+                            }
+                          },
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
 
-                // Ana Detay İçeriği (Cast, Awards, Genres, Storyline, Metrics)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 1. Cast (Oyuncu Kadrosu)
-                        if (castList.isNotEmpty) ...[
+                  // 2. Dribbble "American Beauty" İçerik Akışı
+                  Expanded(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // -------------------------------
+                          // SECTION: Cast (Oyuncular)
+                          // -------------------------------
                           Text(
                             'Cast',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 18,
                               fontWeight: FontWeight.w800,
                               color: titleColor,
-                              letterSpacing: -0.2,
+                              letterSpacing: -0.3,
                             ),
                           ),
                           const SizedBox(height: 12),
-                          SizedBox(
-                            height: 140,
-                            child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: castList.length,
-                              separatorBuilder: (_, __) => const SizedBox(width: 14),
-                              itemBuilder: (context, index) {
-                                final actor = castList[index];
-                                final actorName = actor['name'] ?? '';
-                                final character = actor['character'] ?? '';
-                                final profile = actor['profile_path'];
+                          if (castList.isNotEmpty)
+                            SizedBox(
+                              height: 145,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                physics: const BouncingScrollPhysics(),
+                                itemCount: castList.length,
+                                separatorBuilder: (_, __) => const SizedBox(width: 14),
+                                itemBuilder: (context, index) {
+                                  final actor = castList[index];
+                                  final actorName = actor['name'] ?? 'Unknown';
+                                  final character = actor['character'] ?? '';
+                                  final profilePath = actor['profile_path'];
 
-                                return GestureDetector(
-                                  onTap: () => ActorDetailModal.show(context, actor),
-                                  child: SizedBox(
-                                    width: 76,
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        ClipRRect(
-                                          borderRadius: BorderRadius.circular(14),
-                                          child: Image.network(
-                                            AppConstants.getPosterUrl(profile),
-                                            width: 76,
-                                            height: 90,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (_, __, ___) => Container(
-                                              width: 76,
+                                  return GestureDetector(
+                                    onTap: () => ActorDetailModal.show(context, actor),
+                                    child: SizedBox(
+                                      width: 90,
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          // Kare / Yuvarlatılmış Sanatçı Fotoğrafı
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(12),
+                                            child: Container(
+                                              width: 90,
                                               height: 90,
-                                              color: Colors.grey.shade200,
-                                              child: const Icon(Icons.person, color: Colors.grey),
+                                              color: isDark ? const Color(0xFF1E212B) : const Color(0xFFF0F1F5),
+                                              child: profilePath != null
+                                                  ? Image.network(
+                                                      AppConstants.getPosterUrl(profilePath),
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder: (_, __, ___) => const Icon(
+                                                        Icons.person,
+                                                        color: Colors.grey,
+                                                        size: 40,
+                                                      ),
+                                                    )
+                                                  : const Icon(Icons.person, color: Colors.grey, size: 40),
                                             ),
                                           ),
-                                        ),
-                                        const SizedBox(height: 6),
-                                        Text(
-                                          actorName,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w700,
-                                            color: titleColor,
+                                          const SizedBox(height: 6),
+                                          // Sanatçı İsmi (Kalın)
+                                          Text(
+                                            actorName,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 12.5,
+                                              fontWeight: FontWeight.w700,
+                                              color: titleColor,
+                                            ),
                                           ),
-                                        ),
-                                        Text(
-                                          character,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            color: mutedColor,
+                                          // Karakter Adı (Gri)
+                                          Text(
+                                            character.isNotEmpty ? character : 'Cast',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w400,
+                                              color: mutedColor,
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                );
-                              },
+                                  );
+                                },
+                              ),
+                            )
+                          else
+                            Text('Cast details not available.', style: TextStyle(color: mutedColor, fontSize: 13)),
+
+                          const SizedBox(height: 24),
+
+                          // -------------------------------
+                          // SECTION: Awards (Kupa İkonları & Metin)
+                          // -------------------------------
+                          Text(
+                            'Awards',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: titleColor,
+                              letterSpacing: -0.3,
                             ),
                           ),
-                          const SizedBox(height: 24),
-                        ],
-
-                        // 2. Awards (Ödüller)
-                        Text(
-                          'Awards',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: titleColor,
-                            letterSpacing: -0.2,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('🏆 🏆 🏆 🏆 🏆 ', style: TextStyle(fontSize: 16)),
-                            Expanded(
-                              child: Text(
-                                voteAverage >= 8.0
-                                    ? '5 Oscars, 4 Golden Globes, 2 BAFTA Awards... 5 more'
-                                    : '3 Academy Awards Nominations, 2 International Film Trophies',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: mutedColor,
-                                  height: 1.3,
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              const Text('🏆 🏆 🏆 🏆 🏆 ', style: TextStyle(fontSize: 18)),
+                              Expanded(
+                                child: Text(
+                                  '${voteAverage.toStringAsFixed(1)} Rating · Winner of Multi Academy & Film Awards... 5 more',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: mutedColor,
+                                    height: 1.3,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
+                            ],
+                          ),
 
-                        // 3. Genres (Türler)
-                        if (genresText.isNotEmpty) ...[
+                          const SizedBox(height: 24),
+
+                          // -------------------------------
+                          // SECTION: Genres (Türler)
+                          // -------------------------------
                           Text(
                             'Genres',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 18,
                               fontWeight: FontWeight.w800,
                               color: titleColor,
-                              letterSpacing: -0.2,
+                              letterSpacing: -0.3,
                             ),
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            genresText,
+                            genresString,
                             style: TextStyle(
-                              fontSize: 13,
-                              color: mutedColor,
+                              fontSize: 14,
+                              color: isDark ? Colors.white70 : const Color(0xFF4A4E5A),
                               height: 1.4,
                             ),
                           ),
-                          const SizedBox(height: 24),
-                        ],
 
-                        // 4. Storyline (Hikaye)
-                        Text(
-                          'Storyline',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: titleColor,
-                            letterSpacing: -0.2,
+                          const SizedBox(height: 24),
+
+                          // -------------------------------
+                          // SECTION: Storyline (Özet & "More")
+                          // -------------------------------
+                          Text(
+                            'Storyline',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: titleColor,
+                              letterSpacing: -0.3,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 6),
-                        GestureDetector(
-                          onTap: () => setState(() => _isStorylineExpanded = !_isStorylineExpanded),
-                          child: Text(
+                          const SizedBox(height: 8),
+                          Text(
                             overview,
-                            maxLines: _isStorylineExpanded ? 100 : 3,
+                            maxLines: _isStorylineExpanded ? null : 4,
                             overflow: _isStorylineExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: 14,
                               height: 1.5,
-                              color: isDark ? Colors.white70 : const Color(0xFF3E434D),
+                              color: isDark ? Colors.white70 : const Color(0xFF4A4E5A),
                             ),
                           ),
-                        ),
-                        if (overview.length > 120) ...[
-                          const SizedBox(height: 4),
-                          GestureDetector(
-                            onTap: () => setState(() => _isStorylineExpanded = !_isStorylineExpanded),
-                            child: Text(
-                              _isStorylineExpanded ? 'Less' : 'More',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: AppTheme.primaryColor,
-                              ),
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 24),
-
-                        // 5. Country, Budget, Cumulative Worldwide Gross
-                        _buildMetricTile('Country', countryName, titleColor, mutedColor),
-                        const SizedBox(height: 14),
-                        _buildMetricTile('Budget', _formatCurrency(budgetNum), titleColor, mutedColor),
-                        const SizedBox(height: 14),
-                        _buildMetricTile('Cumulative Worldwide Gross', _formatCurrency(revenueNum), titleColor, mutedColor),
-                        const SizedBox(height: 32),
-
-                        // 6. Eylem Butonları: İzlendi & Listeme Ekle
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: () async {
-                                  final newStatus = isInWatchlist ? 'remove' : 'plan_to_watch';
-                                  await context.read<MediaDetailCubit>().setWatchStatus(
-                                    tmdbId: widget.id,
-                                    mediaType: widget.mediaType,
-                                    title: title,
-                                    posterPath: poster ?? '',
-                                    status: newStatus,
-                                  );
-                                  if (mounted) context.read<ProfileCubit>().loadProfile();
-                                },
-                                icon: Icon(
-                                  isInWatchlist ? Icons.bookmark_added_rounded : Icons.bookmark_add_outlined,
-                                  color: isInWatchlist ? AppTheme.primaryColor : titleColor,
-                                  size: 18,
-                                ),
-                                label: Text(
-                                  isInWatchlist ? 'Listede' : 'İzleme Listesi',
-                                  style: TextStyle(fontSize: 13, color: isInWatchlist ? AppTheme.primaryColor : titleColor),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  side: BorderSide(color: isInWatchlist ? AppTheme.primaryColor : (isDark ? Colors.white24 : Colors.grey.shade300)),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: () async {
-                                  final newStatus = isWatched ? 'remove' : 'watched';
-                                  await context.read<MediaDetailCubit>().setWatchStatus(
-                                    tmdbId: widget.id,
-                                    mediaType: widget.mediaType,
-                                    title: title,
-                                    posterPath: poster ?? '',
-                                    status: newStatus,
-                                  );
-                                  if (mounted) context.read<ProfileCubit>().loadProfile();
-                                },
-                                icon: Icon(
-                                  isWatched ? Icons.check_circle_rounded : Icons.check_rounded,
-                                  color: Colors.white,
-                                  size: 18,
-                                ),
-                                label: Text(
-                                  isWatched ? 'İzlendi' : 'İzledim',
-                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: isWatched ? const Color(0xFF2ECC71) : AppTheme.darkText,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          if (overview.length > 180) ...[
+                            const SizedBox(height: 4),
+                            GestureDetector(
+                              onTap: () => setState(() => _isStorylineExpanded = !_isStorylineExpanded),
+                              child: Text(
+                                _isStorylineExpanded ? 'Less' : 'More',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppTheme.primaryColor,
                                 ),
                               ),
                             ),
                           ],
-                        ),
-                        const SizedBox(height: 36),
 
-                        // Topluluk Yorumları
-                        if (state.communityReviews.isNotEmpty) ...[
-                          Text(
-                            'Community Reviews (${state.communityReviews.length})',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                              color: titleColor,
-                              letterSpacing: -0.2,
+                          const SizedBox(height: 24),
+
+                          // -------------------------------
+                          // SECTION: Metadata (Country, Budget, Worldwide Gross)
+                          // -------------------------------
+                          _buildMetaSection('Country', countryName, titleColor, mutedColor),
+                          const SizedBox(height: 16),
+                          _buildMetaSection('Budget', _formatCurrency(budgetNum), titleColor, mutedColor),
+                          const SizedBox(height: 16),
+                          _buildMetaSection('Cumulative Worldwide Gross', _formatCurrency(revenueNum), titleColor, mutedColor),
+
+                          const SizedBox(height: 32),
+
+                          // -------------------------------
+                          // SECTION: İnceleme / Puan Butonu
+                          // -------------------------------
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () => _showRatingModal(m),
+                              icon: const Icon(Icons.star_rounded, size: 20),
+                              label: const Text('Add a review'),
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 12),
-                          ...state.communityReviews.map((rev) {
-                            final user = rev['user'] ?? {};
-                            final username = user['username'] ?? 'Kullanıcı';
-                            final rating = rev['rating'];
-                            final reviewText = rev['review'] ?? '';
-
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: isDark ? AppTheme.darkCard : const Color(0xFFF9FAFC),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: isDark ? AppTheme.darkCardBorder : AppTheme.borderColor,
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        '@$username',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 13,
-                                          color: titleColor,
-                                        ),
-                                      ),
-                                      if (rating != null)
-                                        Row(
-                                          children: [
-                                            const Icon(Icons.star_rounded, color: AppTheme.primaryColor, size: 16),
-                                            const SizedBox(width: 3),
-                                            Text(
-                                              '$rating',
-                                              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
-                                            ),
-                                          ],
-                                        ),
-                                    ],
-                                  ),
-                                  if (reviewText.isNotEmpty) ...[
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      reviewText,
-                                      style: TextStyle(fontSize: 13, color: mutedColor, height: 1.4),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            );
-                          }),
+                          const SizedBox(height: 32),
                         ],
-                        const SizedBox(height: 40),
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             );
           }
 
-          return const SizedBox();
+          return const SizedBox.shrink();
         },
       ),
     );
   }
 
-  Widget _buildMetricTile(String label, String value, Color titleColor, Color mutedColor) {
+  Widget _buildMetaSection(String label, String value, Color titleColor, Color mutedColor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 15,
             fontWeight: FontWeight.w800,
             color: titleColor,
             letterSpacing: -0.2,
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 4),
         Text(
           value,
           style: TextStyle(
-            fontSize: 13,
+            fontSize: 13.5,
             color: mutedColor,
+            height: 1.3,
           ),
         ),
       ],

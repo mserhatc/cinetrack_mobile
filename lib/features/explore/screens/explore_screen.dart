@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../cubit/explore_cubit.dart';
 import '../widgets/movie_explorer_card.dart';
@@ -13,10 +12,10 @@ class ExploreScreen extends StatefulWidget {
 }
 
 class _ExploreScreenState extends State<ExploreScreen> {
-  final PageController _pageController = PageController(viewportFraction: 0.94);
+  final PageController _pageController = PageController(viewportFraction: 0.92);
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
-  int _currentPage = 0;
+  String _selectedCategory = 'trending';
 
   @override
   void initState() {
@@ -33,9 +32,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   void _onCategorySelected(String category) {
     setState(() {
+      _selectedCategory = category;
       _isSearching = false;
       _searchController.clear();
-      _currentPage = 0;
     });
     context.read<ExploreCubit>().fetchItems(category: category);
   }
@@ -45,114 +44,85 @@ class _ExploreScreenState extends State<ExploreScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final bg = isDark ? AppTheme.darkBg : AppTheme.lightBg;
+    final titleColor = isDark ? Colors.white : AppTheme.darkText;
+    final mutedColor = isDark ? Colors.white60 : AppTheme.mutedText;
 
     return Scaffold(
       backgroundColor: bg,
       body: SafeArea(
         child: Column(
           children: [
-            // Üst Başlık & Arama Çubuğu
+            // Üst Arama & Kategori Çubuğu (Minimalist)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 children: [
-                  if (_isSearching)
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        autofocus: true,
-                        decoration: InputDecoration(
-                          hintText: 'Film veya Dizi ara...',
-                          prefixIcon: const Icon(Icons.search, size: 20),
-                          suffixIcon: IconButton(
-                            icon: const Icon(Icons.close, size: 18),
-                            onPressed: () {
-                              setState(() {
-                                _isSearching = false;
-                                _searchController.clear();
-                              });
-                              context.read<ExploreCubit>().fetchItems();
-                            },
+                  Expanded(
+                    child: _isSearching
+                        ? Container(
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: isDark ? AppTheme.darkCard : const Color(0xFFF7F8FA),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isDark ? AppTheme.darkCardBorder : AppTheme.borderColor,
+                              ),
+                            ),
+                            child: TextField(
+                              controller: _searchController,
+                              autofocus: true,
+                              style: TextStyle(fontSize: 14, color: titleColor),
+                              decoration: InputDecoration(
+                                hintText: 'Film, dizi veya oyuncu ara...',
+                                hintStyle: TextStyle(fontSize: 13, color: mutedColor),
+                                prefixIcon: Icon(Icons.search, size: 20, color: mutedColor),
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                              ),
+                              onSubmitted: (query) {
+                                if (query.trim().isNotEmpty) {
+                                  context.read<ExploreCubit>().search(query.trim());
+                                }
+                              },
+                            ),
+                          )
+                        : SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            physics: const BouncingScrollPhysics(),
+                            child: Row(
+                              children: [
+                                _buildCategoryPill('Trending', 'trending', isDark),
+                                const SizedBox(width: 8),
+                                _buildCategoryPill('Top Rated', 'top_rated', isDark),
+                                const SizedBox(width: 8),
+                                _buildCategoryPill('Now Playing', 'now_playing', isDark),
+                                const SizedBox(width: 8),
+                                _buildCategoryPill('Upcoming', 'upcoming', isDark),
+                              ],
+                            ),
                           ),
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        ),
-                        onSubmitted: (query) {
-                          if (query.trim().isNotEmpty) {
-                            context.read<ExploreCubit>().search(query.trim());
-                          }
-                        },
-                      ),
-                    )
-                  else ...[
-                    // Logo / Başlık
-                    Row(
-                      children: [
-                        Text(
-                          'Movie',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.5,
-                            color: isDark ? Colors.white : AppTheme.darkText,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Explorer',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w400,
-                            letterSpacing: -0.5,
-                            color: isDark ? Colors.white70 : AppTheme.mutedText,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-
-                    // Arama Açma Butonu
-                    IconButton(
-                      icon: Icon(
-                        Icons.search_rounded,
-                        color: isDark ? Colors.white : AppTheme.darkText,
-                        size: 24,
-                      ),
-                      onPressed: () {
-                        setState(() => _isSearching = true);
-                      },
-                    ),
-                  ],
+                  ),
+                  const SizedBox(width: 8),
+                  // Arama Açma / Kapama Butonu
+                  IconButton(
+                    icon: Icon(_isSearching ? Icons.close : Icons.search_rounded, color: titleColor),
+                    onPressed: () {
+                      setState(() {
+                        _isSearching = !_isSearching;
+                        if (!_isSearching) {
+                          _searchController.clear();
+                          context.read<ExploreCubit>().fetchItems(category: _selectedCategory);
+                        }
+                      });
+                    },
+                  ),
                 ],
               ),
             ),
 
-            // Kategori Hap Butonları (Trending, Movies, TV)
-            if (!_isSearching)
-              BlocBuilder<ExploreCubit, ExploreState>(
-                builder: (context, state) {
-                  final activeCategory = state is ExploreLoaded ? state.activeCategory : 'trending';
-
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Row(
-                        children: [
-                          _buildCategoryChip('Trending', 'trending', activeCategory == 'trending', isDark),
-                          const SizedBox(width: 8),
-                          _buildCategoryChip('Movies', 'movies', activeCategory == 'movies', isDark),
-                          const SizedBox(width: 8),
-                          _buildCategoryChip('TV Shows', 'tv', activeCategory == 'tv', isDark),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-
-            // Ana İçerik: Movie Explorer Kart Swiper (PageView)
+            // Dribbble Kart Slider (PageView)
             Expanded(
               child: BlocBuilder<ExploreCubit, ExploreState>(
                 builder: (context, state) {
@@ -167,10 +137,16 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(state.message, style: TextStyle(color: isDark ? Colors.white70 : AppTheme.mutedText)),
+                          Icon(Icons.error_outline, size: 48, color: Colors.grey.shade400),
                           const SizedBox(height: 12),
+                          Text(
+                            state.message,
+                            style: TextStyle(color: mutedColor),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
                           ElevatedButton(
-                            onPressed: () => context.read<ExploreCubit>().fetchItems(),
+                            onPressed: () => context.read<ExploreCubit>().fetchItems(category: _selectedCategory),
                             child: const Text('Tekrar Dene'),
                           ),
                         ],
@@ -182,59 +158,24 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     final items = state.items;
                     if (items.isEmpty) {
                       return Center(
-                        child: Text(
-                          'Sonuç bulunamadı.',
-                          style: TextStyle(color: isDark ? Colors.white70 : AppTheme.mutedText),
-                        ),
+                        child: Text('İçerik bulunamadı.', style: TextStyle(color: mutedColor)),
                       );
                     }
 
-                    return Column(
-                      children: [
-                        Expanded(
-                          child: PageView.builder(
-                            controller: _pageController,
-                            itemCount: items.length,
-                            onPageChanged: (index) {
-                              setState(() => _currentPage = index);
-                            },
-                            itemBuilder: (context, index) {
-                              final media = items[index];
-                              return MovieExplorerCard(
-                                media: media,
-                                onPlayTrailer: () {
-                                  final id = media['id'];
-                                  final mediaType = media['media_type'] ?? (media['title'] != null ? 'movie' : 'tv');
-                                  context.push('/media/$mediaType/$id');
-                                },
-                              );
-                            },
-                          ),
-                        ),
-
-                        // Sayfa Göstergesi Çizgisi (Subtle progress indicator)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12, top: 4),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                '${_currentPage + 1} / ${items.length}',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: isDark ? Colors.white38 : AppTheme.mutedText,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                    return PageView.builder(
+                      controller: _pageController,
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: items.length,
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+                        return MovieExplorerCard(
+                          media: item,
+                        );
+                      },
                     );
                   }
 
-                  return const SizedBox();
+                  return const SizedBox.shrink();
                 },
               ),
             ),
@@ -244,30 +185,35 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
-  Widget _buildCategoryChip(String title, String key, bool isSelected, bool isDark) {
+  Widget _buildCategoryPill(String title, String key, bool isDark) {
+    final isSelected = _selectedCategory == key;
     return GestureDetector(
       onTap: () => _onCategorySelected(key),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
               ? (isDark ? Colors.white : AppTheme.darkText)
-              : (isDark ? AppTheme.darkCard : const Color(0xFFF4F5F8)),
-          borderRadius: BorderRadius.circular(20),
+              : (isDark ? AppTheme.darkCard : const Color(0xFFF7F8FA)),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isSelected
+                ? Colors.transparent
+                : (isDark ? AppTheme.darkCardBorder : AppTheme.borderColor),
+          ),
         ),
         child: Text(
           title,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 12.5,
             fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
             color: isSelected
-                ? (isDark ? AppTheme.darkText : Colors.white)
-                : (isDark ? Colors.white60 : AppTheme.mutedText),
+                ? (isDark ? AppTheme.darkBg : Colors.white)
+                : (isDark ? Colors.white70 : AppTheme.darkText),
           ),
         ),
       ),
     );
   }
 }
-
