@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/cubit/auth_cubit.dart';
@@ -131,17 +131,14 @@ class _MediaDetailScreenState extends State<MediaDetailScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  TextField(
+                  ShadInput(
                     controller: reviewController,
                     maxLines: 4,
-                    decoration: InputDecoration(
-                      hintText: 'Film hakkındaki düşünceleriniz...',
-                      fillColor: isDark ? const Color(0xFF13151D) : const Color(0xFFF7F8FA),
-                    ),
+                    placeholder: const Text('Film hakkındaki düşünceleriniz...'),
                   ),
                   const SizedBox(height: 20),
 
-                  ElevatedButton(
+                  ShadButton(
                     onPressed: () async {
                       Navigator.pop(ctx);
                       final success = await this.context.read<MediaDetailCubit>().rateAndReview(
@@ -160,13 +157,8 @@ class _MediaDetailScreenState extends State<MediaDetailScreen> {
                         );
                       }
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryColor,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                    child: const Text('Send Review', style: TextStyle(fontWeight: FontWeight.w700)),
+                    backgroundColor: AppTheme.primaryColor,
+                    child: const Text('Send Review', style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white)),
                   ),
                 ],
               ),
@@ -519,17 +511,17 @@ class _MediaDetailScreenState extends State<MediaDetailScreen> {
                           const SizedBox(height: 32),
 
                           // -------------------------------
-                          // SECTION: İnceleme / Puan Butonu
+                          // SECTION: İnceleme / Puan Butonu (ShadButton)
                           // -------------------------------
                           SizedBox(
                             width: double.infinity,
-                            child: ElevatedButton.icon(
+                            child: ShadButton(
                               onPressed: () => _showRatingModal(m),
-                              icon: const Icon(Icons.star_rounded, size: 20),
-                              label: const Text('Add a review'),
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              backgroundColor: AppTheme.primaryColor,
+                              leading: const Icon(Icons.star_rounded, size: 20, color: Colors.white),
+                              child: const Text(
+                                'Add a review',
+                                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white),
                               ),
                             ),
                           ),

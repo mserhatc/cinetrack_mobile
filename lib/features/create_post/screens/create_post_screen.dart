@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_theme.dart';
@@ -72,19 +73,19 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                    TextField(
+                    ShadInput(
                       controller: _searchController,
-                      autofocus: true,
-                      decoration: InputDecoration(
-                        hintText: 'Film veya dizi ara...',
-                        prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.clear, size: 18),
-                          onPressed: () {
-                            _searchController.clear();
-                            context.read<CreatePostCubit>().searchMedia('');
-                          },
-                        ),
+                      placeholder: const Text('Film veya dizi ara...'),
+                      leading: const Padding(
+                        padding: EdgeInsets.only(right: 8),
+                        child: Icon(Icons.search_rounded, size: 20),
+                      ),
+                      trailing: GestureDetector(
+                        onTap: () {
+                          _searchController.clear();
+                          context.read<CreatePostCubit>().searchMedia('');
+                        },
+                        child: const Icon(Icons.clear, size: 18),
                       ),
                       onChanged: (val) {
                         context.read<CreatePostCubit>().searchMedia(val);
@@ -426,21 +427,23 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
             // Replik mi İnceleme mi?
             if (_selectedTab == 0) ...[
-              TextField(
+              ShadInput(
                 controller: _quoteController,
                 maxLines: 3,
-                decoration: const InputDecoration(
-                  hintText: 'Unutulmaz bir film repliği yazın...',
-                  prefixIcon: Icon(Icons.format_quote_rounded, size: 22),
+                placeholder: const Text('Unutulmaz bir film repliği yazın...'),
+                leading: const Padding(
+                  padding: EdgeInsets.only(right: 8),
+                  child: Icon(Icons.format_quote_rounded, size: 20),
                 ),
               ),
               const SizedBox(height: 14),
-              TextField(
+              ShadInput(
                 controller: _contentController,
                 maxLines: 2,
-                decoration: const InputDecoration(
-                  hintText: 'Sahne veya karakter hakkında notunuz (isteğe bağlı)...',
-                  prefixIcon: Icon(Icons.edit_note_rounded, size: 22),
+                placeholder: const Text('Sahne veya karakter hakkında notunuz (isteğe bağlı)...'),
+                leading: const Padding(
+                  padding: EdgeInsets.only(right: 8),
+                  child: Icon(Icons.edit_note_rounded, size: 20),
                 ),
               ),
             ] else ...[
@@ -486,40 +489,37 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 ),
               ),
               const SizedBox(height: 14),
-              TextField(
+              ShadInput(
                 controller: _contentController,
                 maxLines: 4,
-                decoration: const InputDecoration(
-                  hintText: 'Film hakkındaki detaylı düşünceleriniz ve eleştiriniz...',
-                  prefixIcon: Icon(Icons.rate_review_outlined, size: 22),
+                placeholder: const Text('Film hakkındaki detaylı düşünceleriniz ve eleştiriniz...'),
+                leading: const Padding(
+                  padding: EdgeInsets.only(right: 8),
+                  child: Icon(Icons.rate_review_outlined, size: 20),
                 ),
               ),
             ],
 
             const SizedBox(height: 28),
 
-            // Paylaş Butonu
+            // Paylaş Butonu (ShadButton)
             BlocBuilder<CreatePostCubit, CreatePostState>(
               builder: (context, state) {
                 final isSubmitting = state is CreatePostSubmitting;
                 return SizedBox(
                   height: 52,
-                  child: ElevatedButton(
+                  child: ShadButton(
                     onPressed: isSubmitting ? null : _submitPost,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryColor,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
+                    backgroundColor: AppTheme.primaryColor,
                     child: isSubmitting
                         ? const SizedBox(
-                            height: 22,
-                            width: 22,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                           )
                         : const Text(
                             'Yayınla',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
                           ),
                   ),
                 );
@@ -532,28 +532,17 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 
   Widget _buildTabChip(String title, int index, bool isSelected, bool isDark) {
-    return GestureDetector(
-      onTap: () => setState(() => _selectedTab = index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? (isDark ? Colors.white : AppTheme.darkText)
-              : (isDark ? AppTheme.darkCard : const Color(0xFFF4F5F8)),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          title,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected
-                ? (isDark ? AppTheme.darkText : Colors.white)
-                : (isDark ? Colors.white60 : AppTheme.mutedText),
-          ),
-        ),
-      ),
+    if (isSelected) {
+      return ShadButton(
+        onPressed: () => setState(() => _selectedTab = index),
+        backgroundColor: isDark ? Colors.white : AppTheme.darkText,
+        foregroundColor: isDark ? AppTheme.darkBg : Colors.white,
+        child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+      );
+    }
+    return ShadButton.outline(
+      onPressed: () => setState(() => _selectedTab = index),
+      child: Text(title, style: TextStyle(color: isDark ? Colors.white70 : AppTheme.mutedText)),
     );
   }
 }

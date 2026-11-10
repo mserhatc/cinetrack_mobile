@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/localization/app_localizations.dart';
@@ -54,14 +55,21 @@ class _PostCardState extends State<PostCard> {
     final contentController = TextEditingController(text: _post['content'] ?? '');
     double currentRating = double.tryParse(_post['rating']?.toString() ?? '') ?? 8.0;
 
-    final result = await showDialog<bool>(
+    final result = await showShadDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) {
-          return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: const Text('Paylaşımı Düzenle', style: TextStyle(fontWeight: FontWeight.bold)),
-            content: SingleChildScrollView(
+          return ShadDialog(
+            title: const Text('Paylaşımı Düzenle'),
+            actions: [
+              ShadButton.outline(onPressed: () => Navigator.pop(ctx, false), child: const Text('İptal')),
+              ShadButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                backgroundColor: AppTheme.primaryColor,
+                child: const Text('Kaydet', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ],
+            child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,25 +77,19 @@ class _PostCardState extends State<PostCard> {
                   if (isQuote) ...[
                     const Text('Replik Metni', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                     const SizedBox(height: 6),
-                    TextField(
+                    ShadInput(
                       controller: quoteController,
                       maxLines: 3,
-                      decoration: const InputDecoration(
-                        hintText: 'Replik girin...',
-                        border: OutlineInputBorder(),
-                      ),
+                      placeholder: const Text('Replik girin...'),
                     ),
                     const SizedBox(height: 14),
                   ],
                   const Text('Düşünceleriniz / Yorumunuz', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                   const SizedBox(height: 6),
-                  TextField(
+                  ShadInput(
                     controller: contentController,
                     maxLines: 4,
-                    decoration: const InputDecoration(
-                      hintText: 'Açıklama veya yorumunuz...',
-                      border: OutlineInputBorder(),
-                    ),
+                    placeholder: const Text('Açıklama veya yorumunuz...'),
                   ),
                   if (_post['rating'] != null) ...[
                     const SizedBox(height: 16),
@@ -113,13 +115,6 @@ class _PostCardState extends State<PostCard> {
                 ],
               ),
             ),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('İptal')),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Kaydet'),
-              ),
-            ],
           );
         },
       ),
@@ -161,16 +156,15 @@ class _PostCardState extends State<PostCard> {
   }
 
   Future<void> _showDeletePostDialog() async {
-    final confirm = await showDialog<bool>(
+    final confirm = await showShadDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => ShadDialog.alert(
         title: const Text('Paylaşımı Sil'),
-        content: const Text('Bu paylaşımı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.'),
+        description: const Text('Bu paylaşımı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('İptal')),
-          ElevatedButton(
+          ShadButton.outline(onPressed: () => Navigator.pop(ctx, false), child: const Text('İptal')),
+          ShadButton.destructive(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
             child: const Text('Sil'),
           ),
         ],
@@ -220,19 +214,13 @@ class _PostCardState extends State<PostCard> {
     final isMyPost = isLoggedIn && currentUserId > 0 && (currentUserId == postUserId);
 
     final isDark = theme.brightness == Brightness.dark;
-    final cardBg = isDark ? const Color(0xFF171922) : Colors.white;
     final cardBorder = isDark ? const Color(0xFF232634) : const Color(0xFFEEEEF2);
     final titleColor = isDark ? Colors.white : const Color(0xFF14171A);
     final mutedColor = isDark ? Colors.white60 : const Color(0xFF8A90A0);
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: cardBorder, width: 1),
-      ),
-      child: Padding(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: ShadCard(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -253,22 +241,33 @@ class _PostCardState extends State<PostCard> {
                       padding: const EdgeInsets.symmetric(vertical: 4),
                       child: Row(
                         children: [
-                          CircleAvatar(
-                            radius: 20,
-                            backgroundColor: AppTheme.primaryColor.withOpacity(0.12),
-                            backgroundImage: (_post['avatar'] != null && _post['avatar'].toString().isNotEmpty)
-                                ? NetworkImage(_post['avatar'])
-                                : null,
-                            child: (_post['avatar'] == null || _post['avatar'].toString().isEmpty)
-                                ? Text(
-                                    (_post['username'] ?? '?')[0].toUpperCase(),
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: AppTheme.primaryColor,
-                                    ),
-                                  )
-                                : null,
-                          ),
+                          if (_post['avatar'] != null && _post['avatar'].toString().isNotEmpty)
+                            ShadAvatar(
+                              _post['avatar'].toString(),
+                              size: const Size.square(40),
+                              placeholder: Text(
+                                (_post['username'] ?? '?')[0].toUpperCase(),
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            )
+                          else
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: AppTheme.primaryColor.withValues(alpha: 0.12),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  (_post['username'] ?? '?')[0].toUpperCase(),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.primaryColor,
+                                  ),
+                                ),
+                              ),
+                            ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
@@ -293,30 +292,26 @@ class _PostCardState extends State<PostCard> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                // Etiket: Replik mi Yorum mu
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isQuote
-                        ? AppTheme.primaryColor.withOpacity(0.12)
-                        : const Color(0xFF2ECC71).withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
+                // ShadBadge: Replik mi Yorum mu
+                ShadBadge.secondary(
+                  backgroundColor: isQuote
+                      ? AppTheme.primaryColor.withValues(alpha: 0.12)
+                      : const Color(0xFF2ECC71).withValues(alpha: 0.12),
+                  foregroundColor: isQuote ? AppTheme.primaryColor : const Color(0xFF2ECC71),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
                         isQuote ? Icons.format_quote_rounded : Icons.rate_review_outlined,
-                        size: 14,
+                        size: 13,
                         color: isQuote ? AppTheme.primaryColor : const Color(0xFF2ECC71),
                       ),
                       const SizedBox(width: 4),
                       Text(
                         isQuote ? loc.translate('quotes') : loc.translate('reviews'),
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: isQuote ? AppTheme.primaryColor : const Color(0xFF2ECC71),
                         ),
                       ),
                     ],

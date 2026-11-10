@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../core/theme/app_theme.dart';
 import '../cubit/auth_cubit.dart';
 
@@ -89,122 +90,131 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Logo
-              Center(
-                child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withOpacity(0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.movie_filter_rounded, color: AppTheme.primaryColor, size: 30),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Hoş Geldiniz',
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                  color: titleColor,
-                  letterSpacing: -0.5,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Film koleksiyonunu ve listeni yönetmek için giriş yap.',
-                style: TextStyle(fontSize: 13, color: mutedColor),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 32),
-
-              // Giriş Alanı
-              TextField(
-                controller: _loginController,
-                textInputAction: TextInputAction.next,
-                decoration: InputDecoration(
-                  labelText: 'Kullanıcı Adı veya E-posta',
-                  prefixIcon: Icon(Icons.person_outline_rounded, size: 20, color: mutedColor),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Şifre Alanı
-              TextField(
-                controller: _passwordController,
-                obscureText: _obscurePassword,
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => _submitLogin(),
-                decoration: InputDecoration(
-                  labelText: 'Şifre',
-                  prefixIcon: Icon(Icons.lock_outline_rounded, size: 20, color: mutedColor),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                      size: 20,
-                      color: mutedColor,
-                    ),
-                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 28),
-
-              // Giriş Butonu
-              SizedBox(
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _submitLogin,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryColor,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 22,
-                          width: 22,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
-                        )
-                      : const Text(
-                          'Giriş Yap',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                        ),
-                ),
-              ),
-              const SizedBox(height: 18),
-
-              // Kayıt Ol Yönlendirmesi
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: ShadCard(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    'Hesabınız yok mu? ',
-                    style: TextStyle(color: mutedColor, fontSize: 13),
-                  ),
-                  GestureDetector(
-                    onTap: () => context.push('/register'),
-                    child: const Text(
-                      'Kayıt Ol',
-                      style: TextStyle(
-                        color: AppTheme.primaryColor,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
+                  // Logo
+                  Center(
+                    child: Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Center(
+                        child: Icon(Icons.movie_filter_rounded, color: AppTheme.primaryColor, size: 30),
                       ),
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Hoş Geldiniz',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: titleColor,
+                      letterSpacing: -0.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Film koleksiyonunu ve listeni yönetmek için giriş yap.',
+                    style: TextStyle(fontSize: 13, color: mutedColor),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 28),
+
+                  // ShadInput: Giriş Alanı
+                  Text(
+                    'Kullanıcı Adı veya E-posta',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: titleColor),
+                  ),
+                  const SizedBox(height: 6),
+                  ShadInput(
+                    controller: _loginController,
+                    placeholder: const Text('kullanici_adi veya email@ornek.com'),
+                    leading: Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Icon(Icons.person_outline_rounded, size: 18, color: mutedColor),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // ShadInput: Şifre Alanı
+                  Text(
+                    'Şifre',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: titleColor),
+                  ),
+                  const SizedBox(height: 6),
+                  ShadInput(
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    placeholder: const Text('••••••••'),
+                    leading: Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Icon(Icons.lock_outline_rounded, size: 18, color: mutedColor),
+                    ),
+                    trailing: GestureDetector(
+                      onTap: () => setState(() => _obscurePassword = !_obscurePassword),
+                      child: Icon(
+                        _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        size: 18,
+                        color: mutedColor,
+                      ),
+                    ),
+                    onSubmitted: (_) => _submitLogin(),
+                  ),
+                  const SizedBox(height: 26),
+
+                  // ShadButton: Giriş Butonu
+                  ShadButton(
+                    onPressed: _isLoading ? null : _submitLogin,
+                    backgroundColor: AppTheme.primaryColor,
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          )
+                        : const Text(
+                            'Giriş Yap',
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white),
+                          ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Kayıt Ol Yönlendirmesi
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Hesabınız yok mu? ',
+                        style: TextStyle(color: mutedColor, fontSize: 13),
+                      ),
+                      ShadButton.link(
+                        onPressed: () => context.push('/register'),
+                        child: const Text(
+                          'Kayıt Ol',
+                          style: TextStyle(
+                            color: AppTheme.primaryColor,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),

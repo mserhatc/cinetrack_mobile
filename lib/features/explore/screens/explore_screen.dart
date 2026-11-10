@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../core/theme/app_theme.dart';
 import '../cubit/explore_cubit.dart';
 import '../widgets/movie_explorer_card.dart';
@@ -59,34 +60,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 children: [
                   Expanded(
                     child: _isSearching
-                        ? Container(
-                            height: 42,
-                            decoration: BoxDecoration(
-                              color: isDark ? AppTheme.darkCard : const Color(0xFFF7F8FA),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: isDark ? AppTheme.darkCardBorder : AppTheme.borderColor,
-                              ),
+                        ? ShadInput(
+                            controller: _searchController,
+                            placeholder: const Text('Film, dizi veya oyuncu ara...'),
+                            leading: Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: Icon(Icons.search, size: 18, color: mutedColor),
                             ),
-                            child: TextField(
-                              controller: _searchController,
-                              autofocus: true,
-                              style: TextStyle(fontSize: 14, color: titleColor),
-                              decoration: InputDecoration(
-                                hintText: 'Film, dizi veya oyuncu ara...',
-                                hintStyle: TextStyle(fontSize: 13, color: mutedColor),
-                                prefixIcon: Icon(Icons.search, size: 20, color: mutedColor),
-                                border: InputBorder.none,
-                                enabledBorder: InputBorder.none,
-                                focusedBorder: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                              ),
-                              onSubmitted: (query) {
-                                if (query.trim().isNotEmpty) {
-                                  context.read<ExploreCubit>().search(query.trim());
-                                }
-                              },
-                            ),
+                            onSubmitted: (query) {
+                              if (query.trim().isNotEmpty) {
+                                context.read<ExploreCubit>().search(query.trim());
+                              }
+                            },
                           )
                         : SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
@@ -187,31 +172,26 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   Widget _buildCategoryPill(String title, String key, bool isDark) {
     final isSelected = _selectedCategory == key;
-    return GestureDetector(
-      onTap: () => _onCategorySelected(key),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? (isDark ? Colors.white : AppTheme.darkText)
-              : (isDark ? AppTheme.darkCard : const Color(0xFFF7F8FA)),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: isSelected
-                ? Colors.transparent
-                : (isDark ? AppTheme.darkCardBorder : AppTheme.borderColor),
-          ),
-        ),
-        child: Text(
-          title,
-          style: TextStyle(
-            fontSize: 12.5,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected
-                ? (isDark ? AppTheme.darkBg : Colors.white)
-                : (isDark ? Colors.white70 : AppTheme.darkText),
-          ),
+    if (isSelected) {
+      return ShadButton(
+        height: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        backgroundColor: isDark ? Colors.white : AppTheme.darkText,
+        foregroundColor: isDark ? AppTheme.darkBg : Colors.white,
+        onPressed: () => _onCategorySelected(key),
+        child: Text(title, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+      );
+    }
+    return ShadButton.outline(
+      height: 36,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      onPressed: () => _onCategorySelected(key),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 12.5,
+          fontWeight: FontWeight.w500,
+          color: isDark ? Colors.white70 : AppTheme.darkText,
         ),
       ),
     );

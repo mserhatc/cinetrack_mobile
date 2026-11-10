@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../auth/cubit/auth_cubit.dart';
@@ -384,16 +385,26 @@ class _CommentsModalState extends State<CommentsModal> {
                                           context.push('/profile/$uid');
                                         }
                                       },
-                                      child: CircleAvatar(
-                                        radius: 18,
-                                        backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
-                                        backgroundImage: (avatar != null && avatar.toString().isNotEmpty)
-                                            ? NetworkImage(avatar)
-                                            : null,
-                                        child: (avatar == null || avatar.toString().isEmpty)
-                                            ? Text(username.isNotEmpty ? username[0].toUpperCase() : '?')
-                                            : null,
-                                      ),
+                                      child: (avatar != null && avatar.toString().isNotEmpty)
+                                          ? ShadAvatar(
+                                              avatar.toString(),
+                                              size: const Size.square(36),
+                                              placeholder: Text(username.isNotEmpty ? username[0].toUpperCase() : '?'),
+                                            )
+                                          : Container(
+                                              width: 36,
+                                              height: 36,
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                                              ),
+                                              child: Center(
+                                                child: Text(
+                                                  username.isNotEmpty ? username[0].toUpperCase() : '?',
+                                                  style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
+                                                ),
+                                              ),
+                                            ),
                                     ),
                                     const SizedBox(width: 10),
 
@@ -530,19 +541,10 @@ class _CommentsModalState extends State<CommentsModal> {
                       ? Row(
                           children: [
                             Expanded(
-                              child: TextField(
+                              child: ShadInput(
                                 controller: _controller,
-                                textInputAction: TextInputAction.send,
+                                placeholder: const Text('Bir yorum yaz...'),
                                 onSubmitted: (_) => _submitComment(),
-                                decoration: const InputDecoration(
-                                  hintText: 'Bir yorum yaz...',
-                                  isDense: true,
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.all(Radius.circular(20)),
-                                    borderSide: BorderSide(color: Colors.grey),
-                                  ),
-                                ),
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -560,14 +562,11 @@ class _CommentsModalState extends State<CommentsModal> {
                                 style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 13),
                               ),
                             ),
-                            ElevatedButton(
+                            ShadButton(
                               onPressed: () {
                                 Navigator.of(context, rootNavigator: true).pop();
                                 context.push('/login');
                               },
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                              ),
                               child: const Text('Giriş Yap'),
                             ),
                           ],

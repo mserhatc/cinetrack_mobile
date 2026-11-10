@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/avatar_picker_dialog.dart';
 import '../cubit/auth_cubit.dart';
@@ -121,183 +122,203 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Logo & Başlık
-              Center(
-                child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withOpacity(0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.movie_filter_rounded, color: AppTheme.primaryColor, size: 30),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Hesap Oluştur',
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                  color: titleColor,
-                  letterSpacing: -0.5,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Film ve dizi dünyasındaki keşiflerini kaydet.',
-                style: TextStyle(fontSize: 13, color: mutedColor),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-
-              // Avatar Seçici
-              Center(
-                child: GestureDetector(
-                  onTap: _pickAvatar,
-                  child: Stack(
-                    children: [
-                      CircleAvatar(
-                        radius: 42,
-                        backgroundColor: isDark ? AppTheme.darkCard : const Color(0xFFF2F4F7),
-                        backgroundImage: (_selectedAvatar != null && _selectedAvatar!.isNotEmpty)
-                            ? NetworkImage(_selectedAvatar!)
-                            : null,
-                        child: (_selectedAvatar == null || _selectedAvatar!.isEmpty)
-                            ? Icon(Icons.person_outline_rounded, size: 40, color: mutedColor)
-                            : null,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: ShadCard(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Logo & Başlık
+                  Center(
+                    child: Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
                       ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryColor,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: bg, width: 2),
+                      child: const Center(
+                        child: Icon(Icons.movie_filter_rounded, color: AppTheme.primaryColor, size: 30),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Hesap Oluştur',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: titleColor,
+                      letterSpacing: -0.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Film ve dizi dünyasındaki keşiflerini kaydet.',
+                    style: TextStyle(fontSize: 13, color: mutedColor),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+
+                  // ShadAvatar ile Avatar Seçici
+                  Center(
+                    child: GestureDetector(
+                      onTap: _pickAvatar,
+                      child: Stack(
+                        children: [
+                          if (_selectedAvatar != null && _selectedAvatar!.isNotEmpty)
+                            ShadAvatar(
+                              _selectedAvatar!,
+                              size: const Size.square(80),
+                              placeholder: Icon(Icons.person, size: 40, color: mutedColor),
+                            )
+                          else
+                            Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isDark ? const Color(0xFF1E212B) : const Color(0xFFF2F4F7),
+                                border: Border.all(color: AppTheme.borderColor),
+                              ),
+                              child: Icon(Icons.person_outline_rounded, size: 40, color: mutedColor),
+                            ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: const BoxDecoration(
+                                color: AppTheme.primaryColor,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.camera_alt_rounded, size: 14, color: Colors.white),
+                            ),
                           ),
-                          child: const Icon(Icons.camera_alt_rounded, size: 14, color: Colors.white),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Kullanıcı Adı
+                  Text(
+                    'Kullanıcı Adı *',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: titleColor),
+                  ),
+                  const SizedBox(height: 6),
+                  ShadInput(
+                    controller: _usernameController,
+                    placeholder: const Text('Örn: sinemasever'),
+                    leading: Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Icon(Icons.alternate_email_rounded, size: 18, color: mutedColor),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Ad Soyad
+                  Text(
+                    'Ad Soyad',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: titleColor),
+                  ),
+                  const SizedBox(height: 6),
+                  ShadInput(
+                    controller: _fullNameController,
+                    placeholder: const Text('Örn: Serhat Çakır'),
+                    leading: Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Icon(Icons.badge_outlined, size: 18, color: mutedColor),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // E-posta
+                  Text(
+                    'E-posta Adresi *',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: titleColor),
+                  ),
+                  const SizedBox(height: 6),
+                  ShadInput(
+                    controller: _emailController,
+                    placeholder: const Text('ornek@email.com'),
+                    leading: Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Icon(Icons.mail_outline_rounded, size: 18, color: mutedColor),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Şifre
+                  Text(
+                    'Şifre * (En az 6 karakter)',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: titleColor),
+                  ),
+                  const SizedBox(height: 6),
+                  ShadInput(
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    placeholder: const Text('••••••••'),
+                    leading: Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Icon(Icons.lock_outline_rounded, size: 18, color: mutedColor),
+                    ),
+                    trailing: GestureDetector(
+                      onTap: () => setState(() => _obscurePassword = !_obscurePassword),
+                      child: Icon(
+                        _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        size: 18,
+                        color: mutedColor,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 26),
+
+                  // ShadButton: Kayıt Ol Butonu
+                  ShadButton(
+                    onPressed: _isLoading ? null : _submitRegister,
+                    backgroundColor: AppTheme.primaryColor,
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          )
+                        : const Text(
+                            'Kayıt Ol',
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white),
+                          ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Zaten Hesabım Var
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Zaten bir hesabınız var mı? ',
+                        style: TextStyle(color: mutedColor, fontSize: 13),
+                      ),
+                      ShadButton.link(
+                        onPressed: () => context.push('/login'),
+                        child: const Text(
+                          'Giriş Yap',
+                          style: TextStyle(
+                            color: AppTheme.primaryColor,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Kullanıcı Adı
-              TextField(
-                controller: _usernameController,
-                textInputAction: TextInputAction.next,
-                decoration: InputDecoration(
-                  labelText: 'Kullanıcı Adı *',
-                  hintText: 'örn: sinemasever',
-                  prefixIcon: Icon(Icons.alternate_email_rounded, size: 20, color: mutedColor),
-                ),
-              ),
-              const SizedBox(height: 14),
-
-              // Ad Soyad
-              TextField(
-                controller: _fullNameController,
-                textInputAction: TextInputAction.next,
-                decoration: InputDecoration(
-                  labelText: 'Ad Soyad',
-                  hintText: 'örn: Serhat Çakır',
-                  prefixIcon: Icon(Icons.person_outline_rounded, size: 20, color: mutedColor),
-                ),
-              ),
-              const SizedBox(height: 14),
-
-              // E-posta
-              TextField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                textInputAction: TextInputAction.next,
-                decoration: InputDecoration(
-                  labelText: 'E-posta *',
-                  hintText: 'ornek@email.com',
-                  prefixIcon: Icon(Icons.mail_outline_rounded, size: 20, color: mutedColor),
-                ),
-              ),
-              const SizedBox(height: 14),
-
-              // Şifre
-              TextField(
-                controller: _passwordController,
-                obscureText: _obscurePassword,
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => _submitRegister(),
-                decoration: InputDecoration(
-                  labelText: 'Şifre * (En az 6 karakter)',
-                  prefixIcon: Icon(Icons.lock_outline_rounded, size: 20, color: mutedColor),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                      size: 20,
-                      color: mutedColor,
-                    ),
-                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Kayıt Ol Butonu
-              SizedBox(
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _submitRegister,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryColor,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 22,
-                          width: 22,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
-                        )
-                      : const Text(
-                          'Kayıt Ol',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                        ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Zaten hesabım var
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Zaten hesabınız var mı? ',
-                    style: TextStyle(color: mutedColor, fontSize: 13),
-                  ),
-                  GestureDetector(
-                    onTap: () => context.push('/login'),
-                    child: const Text(
-                      'Giriş Yap',
-                      style: TextStyle(
-                        color: AppTheme.primaryColor,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/avatar_picker_dialog.dart';
 import '../../auth/cubit/auth_cubit.dart';
 import '../../feed/cubit/feed_cubit.dart';
@@ -280,31 +282,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Ad Soyad
-                    TextField(
+                    // Ad Soyad (ShadInput)
+                    const Text('Ad Soyad', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    const SizedBox(height: 6),
+                    ShadInput(
                       controller: fullNameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Ad Soyad',
-                        prefixIcon: Icon(Icons.badge_outlined),
+                      placeholder: const Text('Ad Soyad'),
+                      leading: const Padding(
+                        padding: EdgeInsets.only(right: 8),
+                        child: Icon(Icons.badge_outlined, size: 18),
                       ),
                     ),
                     const SizedBox(height: 14),
 
-                    // Biyografi
-                    TextField(
+                    // Biyografi (ShadInput)
+                    const Text('Biyografi', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    const SizedBox(height: 6),
+                    ShadInput(
                       controller: bioController,
                       maxLines: 3,
-                      maxLength: 255,
-                      decoration: const InputDecoration(
-                        labelText: 'Biyografi',
-                        hintText: 'Kendinizi ve film zevkinizi anlatın...',
-                        prefixIcon: Icon(Icons.description_outlined),
+                      placeholder: const Text('Kendinizi ve film zevkinizi anlatın...'),
+                      leading: const Padding(
+                        padding: EdgeInsets.only(right: 8),
+                        child: Icon(Icons.description_outlined, size: 18),
                       ),
                     ),
                     const SizedBox(height: 20),
 
-                    // Kaydet Butonu
-                    ElevatedButton(
+                    // Kaydet Butonu (ShadButton)
+                    ShadButton(
                       onPressed: isSaving
                           ? null
                           : () async {
@@ -338,13 +344,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 );
                               }
                             },
+                      backgroundColor: AppTheme.primaryColor,
                       child: isSaving
                           ? const SizedBox(
-                              height: 20,
-                              width: 20,
+                              height: 18,
+                              width: 18,
                               child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                             )
-                          : const Text('Değişiklikleri Kaydet'),
+                          : const Text('Değişiklikleri Kaydet', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
                     ),
                   ],
                 ),
@@ -448,70 +455,82 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // GİRİŞ YAP FORMU
+                // GİRİŞ YAP FORMU (Shadcn UI)
                 if (_isLoginTab) ...[
-                  TextField(
+                  ShadInput(
                     controller: _loginUserInputController,
-                    decoration: InputDecoration(
-                      labelText: '${loc.translate('username')} / ${loc.translate('email')}',
-                      prefixIcon: const Icon(Icons.person_outline),
+                    placeholder: Text('${loc.translate('username')} / ${loc.translate('email')}'),
+                    leading: const Padding(
+                      padding: EdgeInsets.only(right: 8),
+                      child: Icon(Icons.person_outline, size: 18),
                     ),
                   ),
                   const SizedBox(height: 14),
-                  TextField(
+                  ShadInput(
                     controller: _loginPasswordController,
                     obscureText: _obscureLoginPassword,
-                    decoration: InputDecoration(
-                      labelText: loc.translate('password'),
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      suffixIcon: IconButton(
-                        icon: Icon(_obscureLoginPassword ? Icons.visibility_off : Icons.visibility),
-                        onPressed: () => setState(() => _obscureLoginPassword = !_obscureLoginPassword),
+                    placeholder: Text(loc.translate('password')),
+                    leading: const Padding(
+                      padding: EdgeInsets.only(right: 8),
+                      child: Icon(Icons.lock_outline, size: 18),
+                    ),
+                    trailing: GestureDetector(
+                      onTap: () => setState(() => _obscureLoginPassword = !_obscureLoginPassword),
+                      child: Icon(
+                        _obscureLoginPassword ? Icons.visibility_off : Icons.visibility,
+                        size: 18,
                       ),
                     ),
                   ),
                   const SizedBox(height: 20),
-                  ElevatedButton(
+                  ShadButton(
                     onPressed: _handleInlineLogin,
-                    child: Text(loc.translate('login')),
+                    backgroundColor: AppTheme.primaryColor,
+                    child: Text(loc.translate('login'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   ),
                 ]
-                // KAYIT OL FORMU
+                // KAYIT OL FORMU (Shadcn UI)
                 else ...[
                   // Avatar Seçimi
                   Center(
-                    child: Stack(
-                      children: [
-                        GestureDetector(
-                          onTap: () async {
-                            final picked = await AvatarPickerDialog.show(context, initialAvatar: _regAvatar);
-                            if (picked != null) setState(() => _regAvatar = picked);
-                          },
-                          child: CircleAvatar(
-                            radius: 36,
-                            backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
-                            backgroundImage: _regAvatar != null && _regAvatar!.isNotEmpty
-                                ? NetworkImage(_regAvatar!)
-                                : null,
-                            child: _regAvatar == null || _regAvatar!.isEmpty
-                                ? Icon(Icons.person, size: 36, color: theme.colorScheme.primary)
-                                : null,
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primary,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: theme.scaffoldBackgroundColor, width: 2),
+                    child: GestureDetector(
+                      onTap: () async {
+                        final picked = await AvatarPickerDialog.show(context, initialAvatar: _regAvatar);
+                        if (picked != null) setState(() => _regAvatar = picked);
+                      },
+                      child: Stack(
+                        children: [
+                          if (_regAvatar != null && _regAvatar!.isNotEmpty)
+                            ShadAvatar(
+                              _regAvatar!,
+                              size: const Size.square(72),
+                              placeholder: const Icon(Icons.person, size: 36),
+                            )
+                          else
+                            Container(
+                              width: 72,
+                              height: 72,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                                border: Border.all(color: AppTheme.borderColor),
+                              ),
+                              child: Icon(Icons.person, size: 36, color: theme.colorScheme.primary),
                             ),
-                            child: const Icon(Icons.camera_alt, size: 14, color: Colors.white),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.camera_alt, size: 14, color: Colors.white),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -530,47 +549,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  TextField(
+                  ShadInput(
                     controller: _regUsernameController,
-                    decoration: InputDecoration(
-                      labelText: loc.translate('username'),
-                      prefixIcon: const Icon(Icons.alternate_email),
+                    placeholder: Text(loc.translate('username')),
+                    leading: const Padding(
+                      padding: EdgeInsets.only(right: 8),
+                      child: Icon(Icons.alternate_email, size: 18),
                     ),
                   ),
                   const SizedBox(height: 12),
-                  TextField(
+                  ShadInput(
                     controller: _regFullNameController,
-                    decoration: InputDecoration(
-                      labelText: loc.translate('full_name'),
-                      prefixIcon: const Icon(Icons.badge_outlined),
+                    placeholder: Text(loc.translate('full_name')),
+                    leading: const Padding(
+                      padding: EdgeInsets.only(right: 8),
+                      child: Icon(Icons.badge_outlined, size: 18),
                     ),
                   ),
                   const SizedBox(height: 12),
-                  TextField(
+                  ShadInput(
                     controller: _regEmailController,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      labelText: loc.translate('email'),
-                      prefixIcon: const Icon(Icons.email_outlined),
+                    placeholder: Text(loc.translate('email')),
+                    leading: const Padding(
+                      padding: EdgeInsets.only(right: 8),
+                      child: Icon(Icons.email_outlined, size: 18),
                     ),
                   ),
                   const SizedBox(height: 12),
-                  TextField(
+                  ShadInput(
                     controller: _regPasswordController,
                     obscureText: _obscureRegPassword,
-                    decoration: InputDecoration(
-                      labelText: loc.translate('password'),
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      suffixIcon: IconButton(
-                        icon: Icon(_obscureRegPassword ? Icons.visibility_off : Icons.visibility),
-                        onPressed: () => setState(() => _obscureRegPassword = !_obscureRegPassword),
+                    placeholder: Text(loc.translate('password')),
+                    leading: const Padding(
+                      padding: EdgeInsets.only(right: 8),
+                      child: Icon(Icons.lock_outline, size: 18),
+                    ),
+                    trailing: GestureDetector(
+                      onTap: () => setState(() => _obscureRegPassword = !_obscureRegPassword),
+                      child: Icon(
+                        _obscureRegPassword ? Icons.visibility_off : Icons.visibility,
+                        size: 18,
                       ),
                     ),
                   ),
                   const SizedBox(height: 20),
-                  ElevatedButton(
+                  ShadButton(
                     onPressed: _handleInlineRegister,
-                    child: Text(loc.translate('register')),
+                    backgroundColor: AppTheme.primaryColor,
+                    child: Text(loc.translate('register'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ],
@@ -598,17 +625,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
               tooltip: loc.translate('logout'),
               onPressed: () async {
-                final confirm = await showDialog<bool>(
+                final confirm = await showShadDialog<bool>(
                   context: context,
-                  builder: (ctx) => AlertDialog(
+                  builder: (ctx) => ShadDialog.alert(
                     title: Text(loc.translate('logout')),
-                    content: const Text('Oturumunuzu kapatmak istediğinize emin misiniz?'),
+                    description: const Text('Oturumunuzu kapatmak istediğinize emin misiniz?'),
                     actions: [
-                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('İptal')),
-                      ElevatedButton(
-                        onPressed: () => Navigator.pop(ctx, true),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                      ShadButton.outline(
+                        child: const Text('İptal'),
+                        onPressed: () => Navigator.pop(ctx, false),
+                      ),
+                      ShadButton.destructive(
                         child: const Text('Çıkış Yap'),
+                        onPressed: () => Navigator.pop(ctx, true),
                       ),
                     ],
                   ),
@@ -676,23 +705,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 onTap: isMe ? () => _showEditProfileModal(context, user) : null,
                                 child: Stack(
                                   children: [
-                                    CircleAvatar(
-                                      radius: 40,
-                                      backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.2),
-                                      backgroundImage: (avatar != null && avatar.toString().isNotEmpty)
-                                          ? NetworkImage(avatar)
-                                          : null,
-                                      child: (avatar == null || avatar.toString().isEmpty)
-                                          ? Text(
-                                              username.isNotEmpty ? username[0].toUpperCase() : '?',
-                                              style: TextStyle(
-                                                fontSize: 32,
-                                                fontWeight: FontWeight.bold,
-                                                color: theme.colorScheme.primary,
-                                              ),
-                                            )
-                                          : null,
-                                    ),
+                                    if (avatar != null && avatar.toString().isNotEmpty)
+                                      ShadAvatar(
+                                        avatar.toString(),
+                                        size: const Size.square(80),
+                                        placeholder: Text(
+                                          username.isNotEmpty ? username[0].toUpperCase() : '?',
+                                          style: TextStyle(
+                                            fontSize: 28,
+                                            fontWeight: FontWeight.bold,
+                                            color: theme.colorScheme.primary,
+                                          ),
+                                        ),
+                                      )
+                                    else
+                                      Container(
+                                        width: 80,
+                                        height: 80,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            username.isNotEmpty ? username[0].toUpperCase() : '?',
+                                            style: TextStyle(
+                                              fontSize: 28,
+                                              fontWeight: FontWeight.bold,
+                                              color: theme.colorScheme.primary,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                     if (isMe)
                                       Positioned(
                                         bottom: 0,
@@ -741,14 +785,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             const SizedBox(height: 14),
                             SizedBox(
                               width: double.infinity,
-                              child: OutlinedButton.icon(
+                              child: ShadButton.outline(
                                 onPressed: () => _showEditProfileModal(context, user),
-                                icon: const Icon(Icons.edit_note_rounded, size: 18),
-                                label: const Text('Profili Düzenle', style: TextStyle(fontWeight: FontWeight.bold)),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 10),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
+                                leading: const Icon(Icons.edit_note_rounded, size: 18),
+                                child: const Text('Profili Düzenle', style: TextStyle(fontWeight: FontWeight.bold)),
                               ),
                             ),
                           ],
@@ -756,7 +796,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             const SizedBox(height: 14),
                             SizedBox(
                               width: double.infinity,
-                              child: ElevatedButton.icon(
+                              child: ShadButton(
                                 onPressed: () async {
                                   if (!isLoggedIn) {
                                     ScaffoldMessenger.of(context).showSnackBar(
@@ -769,25 +809,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     context.read<FeedCubit>().fetchFeed();
                                   }
                                 },
-                                icon: Icon(
+                                backgroundColor: stats['is_following'] == true
+                                    ? (theme.brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade300)
+                                    : theme.colorScheme.primary,
+                                leading: Icon(
                                   stats['is_following'] == true
                                       ? Icons.person_remove_rounded
                                       : Icons.person_add_rounded,
                                   size: 18,
+                                  color: Colors.white,
                                 ),
-                                label: Text(
+                                child: Text(
                                   stats['is_following'] == true ? 'Takibi Bırak' : 'Takip Et',
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: stats['is_following'] == true
-                                      ? (theme.brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade300)
-                                      : theme.colorScheme.primary,
-                                  foregroundColor: stats['is_following'] == true
-                                      ? (theme.brightness == Brightness.dark ? Colors.white : Colors.black87)
-                                      : Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
                                 ),
                               ),
                             ),
@@ -970,19 +1004,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Expanded(
-      child: InkWell(
+      child: GestureDetector(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF171922) : const Color(0xFFF7F8FA),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isDark ? const Color(0xFF232634) : const Color(0xFFEEEEF2),
-              width: 1,
-            ),
-          ),
+        child: ShadCard(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
+import '../theme/app_theme.dart';
 
 class AvatarPickerDialog extends StatefulWidget {
   final String? initialAvatar;
@@ -6,7 +8,7 @@ class AvatarPickerDialog extends StatefulWidget {
   const AvatarPickerDialog({super.key, this.initialAvatar});
 
   static Future<String?> show(BuildContext context, {String? initialAvatar}) {
-    return showDialog<String>(
+    return showShadDialog<String>(
       context: context,
       builder: (ctx) => AvatarPickerDialog(initialAvatar: initialAvatar),
     );
@@ -46,26 +48,44 @@ class _AvatarPickerDialogState extends State<AvatarPickerDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: const Text('Profil Fotoğrafı Seç', style: TextStyle(fontWeight: FontWeight.bold)),
-      content: SizedBox(
+    return ShadDialog(
+      title: const Text('Profil Fotoğrafı Seç'),
+      actions: [
+        ShadButton.outline(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('İptal'),
+        ),
+        ShadButton(
+          onPressed: () {
+            Navigator.pop(context, _selectedAvatar.trim());
+          },
+          backgroundColor: AppTheme.primaryColor,
+          child: const Text('Seç', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        ),
+      ],
+      child: SizedBox(
         width: 320,
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Canlı Önizleme
-              CircleAvatar(
-                radius: 44,
-                backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
-                backgroundImage: _selectedAvatar.isNotEmpty ? NetworkImage(_selectedAvatar) : null,
-                child: _selectedAvatar.isEmpty
-                    ? const Icon(Icons.person, size: 44, color: Colors.grey)
-                    : null,
-              ),
+              // Canlı Önizleme (ShadAvatar)
+              if (_selectedAvatar.isNotEmpty)
+                ShadAvatar(
+                  _selectedAvatar,
+                  size: const Size.square(80),
+                  placeholder: const Icon(Icons.person, size: 40),
+                )
+              else
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0xFFF0F1F5),
+                  ),
+                  child: const Icon(Icons.person, size: 40, color: Colors.grey),
+                ),
               const SizedBox(height: 16),
               const Text(
                 'Hazır Avatarlardan Seçin:',
@@ -74,8 +94,8 @@ class _AvatarPickerDialogState extends State<AvatarPickerDialog> {
               const SizedBox(height: 12),
               // Preset Avatar Grid
               Wrap(
-                spacing: 12,
-                runSpacing: 12,
+                spacing: 10,
+                runSpacing: 10,
                 alignment: WrapAlignment.center,
                 children: _presetAvatars.map((url) {
                   final isSelected = _selectedAvatar == url;
@@ -91,13 +111,14 @@ class _AvatarPickerDialogState extends State<AvatarPickerDialog> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: isSelected ? theme.colorScheme.primary : Colors.transparent,
-                          width: 3,
+                          color: isSelected ? AppTheme.primaryColor : Colors.transparent,
+                          width: 2.5,
                         ),
                       ),
-                      child: CircleAvatar(
-                        radius: 22,
-                        backgroundImage: NetworkImage(url),
+                      child: ShadAvatar(
+                        url,
+                        size: const Size.square(42),
+                        placeholder: const Icon(Icons.person, size: 20),
                       ),
                     ),
                   );
@@ -106,14 +127,13 @@ class _AvatarPickerDialogState extends State<AvatarPickerDialog> {
               const SizedBox(height: 18),
               const Divider(),
               const SizedBox(height: 8),
-              // Özel URL Alanı
-              TextField(
+              // Özel URL Alanı (ShadInput)
+              ShadInput(
                 controller: _urlController,
-                decoration: const InputDecoration(
-                  labelText: 'Veya Görsel URL\'si Yapıştırın',
-                  hintText: 'https://ornek.com/foto.jpg',
-                  prefixIcon: Icon(Icons.link_rounded),
-                  isDense: true,
+                placeholder: const Text('https://ornek.com/foto.jpg'),
+                leading: const Padding(
+                  padding: EdgeInsets.only(right: 8),
+                  child: Icon(Icons.link_rounded, size: 18),
                 ),
                 onChanged: (val) {
                   setState(() {
@@ -125,19 +145,6 @@ class _AvatarPickerDialogState extends State<AvatarPickerDialog> {
           ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('İptal'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            Navigator.pop(context, _selectedAvatar.trim());
-          },
-          child: const Text('Seç'),
-        ),
-      ],
     );
   }
 }
-

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_theme.dart';
@@ -117,12 +118,9 @@ class _WatchedListScreenState extends State<WatchedListScreen> {
                               Positioned(
                                 top: 6,
                                 right: 6,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.65),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
+                                child: ShadBadge(
+                                  backgroundColor: Colors.black.withValues(alpha: 0.7),
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [

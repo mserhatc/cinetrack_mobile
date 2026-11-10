@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
 import 'core/api/api_client.dart';
 import 'core/localization/app_localizations.dart';
@@ -40,11 +41,21 @@ class CineTrackApp extends StatelessWidget {
         builder: (context, themeMode) {
           return BlocBuilder<LanguageCubit, Locale>(
             builder: (context, locale) {
-              return MaterialApp.router(
+              return ShadApp.router(
                 title: 'CineTrack',
                 debugShowCheckedModeBanner: false,
-                theme: AppTheme.lightTheme,
-                darkTheme: AppTheme.darkTheme,
+                theme: ShadThemeData(
+                  brightness: Brightness.light,
+                  colorScheme: const ShadZincColorScheme.light(
+                    primary: AppTheme.primaryColor,
+                  ),
+                ),
+                darkTheme: ShadThemeData(
+                  brightness: Brightness.dark,
+                  colorScheme: const ShadZincColorScheme.dark(
+                    primary: AppTheme.primaryColor,
+                  ),
+                ),
                 themeMode: themeMode,
                 locale: locale,
                 supportedLocales: const [
@@ -66,3 +77,4 @@ class CineTrackApp extends StatelessWidget {
     );
   }
 }
+
