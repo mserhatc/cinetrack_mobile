@@ -612,9 +612,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(
         title: BlocBuilder<ProfileCubit, ProfileState>(
           builder: (context, state) {
-            if (isMe) return Text(loc.translate('profile'));
+            if (isMe) {
+              return Text(
+                loc.translate('you'),
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+              );
+            }
             if (state is ProfileLoaded) {
-              return Text('@${state.user['username'] ?? 'Kullanıcı'}');
+              return Text('@${state.user['username'] ?? 'Kullanıcı'}', style: const TextStyle(fontWeight: FontWeight.w800));
             }
             return const Text('Kullanıcı Profili');
           },
@@ -832,46 +837,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           // 1) Takipçilerim, 2) Takip Ettiklerim, 3) İzlediğim Filmler, 4) İzlediğim Diziler
                           Row(
                             children: [
-                              // 1. Takipçilerim
+                              // 1. Takipçi
                               _buildProfileMetricCard(
                                 context,
                                 count: followersCount,
                                 label: 'Takipçi',
-                                icon: Icons.people_alt_outlined,
-                                color: Colors.blueAccent,
                                 onTap: () => context.push('/user-list/followers/$userId'),
                               ),
                               const SizedBox(width: 8),
 
-                              // 2. Takip Ettiklerim
+                              // 2. Takip
                               _buildProfileMetricCard(
                                 context,
                                 count: followingCount,
-                                label: 'Takip Edilen',
-                                icon: Icons.person_add_alt_outlined,
-                                color: Colors.tealAccent,
+                                label: 'Takip',
                                 onTap: () => context.push('/user-list/following/$userId'),
                               ),
                               const SizedBox(width: 8),
 
-                              // 3. İzlediğim Filmler
+                              // 3. Film
                               _buildProfileMetricCard(
                                 context,
                                 count: watchedMoviesCount,
-                                label: 'İzlenen Film',
-                                icon: Icons.movie_outlined,
-                                color: Colors.amber,
+                                label: 'Film',
                                 onTap: () => context.push('/watched-list/movie/$userId'),
                               ),
                               const SizedBox(width: 8),
 
-                              // 4. İzlediğim Diziler
+                              // 4. Dizi
                               _buildProfileMetricCard(
                                 context,
                                 count: watchedShowsCount,
-                                label: 'İzlenen Dizi',
-                                icon: Icons.tv_outlined,
-                                color: Colors.deepPurpleAccent,
+                                label: 'Dizi',
                                 onTap: () => context.push('/watched-list/tv/$userId'),
                               ),
                             ],
@@ -991,17 +988,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Tıklanabilir İstatistik Kartı Widget'ı (Movie Explorer Minimalist Tarzı)
+  // Tıklanabilir İstatistik Kartı Widget'ı (.card style="padding:12px 4px;text-align:center")
   Widget _buildProfileMetricCard(
     BuildContext context, {
     required dynamic count,
     required String label,
-    required IconData icon,
-    required Color color,
     required VoidCallback onTap,
   }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final titleColor = isDark ? Colors.white : AppTheme.darkText;
 
     return Expanded(
       child: GestureDetector(
@@ -1011,14 +1007,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 20, color: color),
-              const SizedBox(height: 6),
               Text(
                 count.toString(),
                 style: TextStyle(
                   fontWeight: FontWeight.w800,
-                  fontSize: 16,
-                  color: isDark ? Colors.white : const Color(0xFF14171A),
+                  fontSize: 18,
+                  color: titleColor,
                 ),
               ),
               const SizedBox(height: 2),
@@ -1027,8 +1021,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF8A90A0),
+                  fontWeight: FontWeight.w500,
+                  color: AppTheme.mutedText,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

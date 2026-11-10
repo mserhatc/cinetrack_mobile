@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/cubit/auth_cubit.dart';
 import '../cubit/feed_cubit.dart';
@@ -97,7 +96,7 @@ class _PostCardState extends State<PostCard> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text('Puanınız:', style: TextStyle(fontWeight: FontWeight.w600)),
-                        Text('${currentRating.toStringAsFixed(1)} / 10', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.amber)),
+                        Text('${currentRating.toStringAsFixed(1)} / 10', style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
                       ],
                     ),
                     Slider(
@@ -105,10 +104,12 @@ class _PostCardState extends State<PostCard> {
                       min: 1.0,
                       max: 10.0,
                       divisions: 18,
+                      activeColor: AppTheme.primaryColor,
                       label: currentRating.toStringAsFixed(1),
-                      activeColor: Colors.amber,
                       onChanged: (val) {
-                        setDialogState(() => currentRating = val);
+                        setDialogState(() {
+                          currentRating = val;
+                        });
                       },
                     ),
                   ],
@@ -121,7 +122,7 @@ class _PostCardState extends State<PostCard> {
     );
 
     if (result == true && mounted) {
-      final postId = _post['id'];
+      final postId = int.tryParse(_post['id'].toString()) ?? 0;
       try {
         final body = <String, dynamic>{
           'content': contentController.text.trim(),
@@ -136,7 +137,6 @@ class _PostCardState extends State<PostCard> {
             _post = updated;
           });
 
-          // Global state'leri anında senkronize et
           context.read<FeedCubit>().updatePostLocally(updated);
           context.read<ProfileCubit>().updatePostLocally(updated);
           widget.onPostUpdated?.call(updated);
@@ -176,7 +176,6 @@ class _PostCardState extends State<PostCard> {
       try {
         final res = await _api.delete('/feed/post/$postId');
         if (res['status'] == true && mounted) {
-          // Global state'leri anında senkronize et
           context.read<FeedCubit>().removePostLocally(postId);
           context.read<ProfileCubit>().removePostLocally(postId);
           widget.onPostDeleted?.call(postId);
@@ -198,7 +197,6 @@ class _PostCardState extends State<PostCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final loc = AppLocalizations.of(context);
     final isQuote = _post['post_type'] == 'quote';
     final hasPoster = _post['poster_path'] != null && _post['poster_path'].toString().isNotEmpty;
     final tmdbId = _post['tmdb_id'];
@@ -214,115 +212,113 @@ class _PostCardState extends State<PostCard> {
     final isMyPost = isLoggedIn && currentUserId > 0 && (currentUserId == postUserId);
 
     final isDark = theme.brightness == Brightness.dark;
-    final cardBorder = isDark ? const Color(0xFF232634) : const Color(0xFFEEEEF2);
-    final titleColor = isDark ? Colors.white : const Color(0xFF14171A);
-    final mutedColor = isDark ? Colors.white60 : const Color(0xFF8A90A0);
+    final titleColor = isDark ? Colors.white : AppTheme.darkText;
+    final mutedColor = isDark ? Colors.white60 : AppTheme.mutedText;
+    final cardBorder = isDark ? AppTheme.darkCardBorder : AppTheme.borderColor;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    // Badge styling (.html spec)
+    final badgeBg = isQuote ? AppTheme.quoteBadgeBg : AppTheme.reviewBadgeBg;
+    final badgeText = isQuote ? AppTheme.quoteBadgeText : AppTheme.reviewBadgeText;
+    final badgeLabel = isQuote ? 'Replik' : 'Yorum';
+
+    // Rating value
+    final ratingVal = double.tryParse(_post['rating']?.toString() ?? '');
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
       child: ShadCard(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Kullanıcı Başlığı (Tıklandığında Profile gider)
+            // 1. Kullanıcı Bilgisi Satırı (.row: .av, name/username, badge)
             Row(
               children: [
-                Expanded(
-                  child: InkWell(
-                    onTap: () {
-                      final userId = _post['user_id'];
-                      if (userId != null) {
-                        context.push('/profile/$userId');
-                      }
-                    },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Row(
-                        children: [
-                          if (_post['avatar'] != null && _post['avatar'].toString().isNotEmpty)
-                            ShadAvatar(
-                              _post['avatar'].toString(),
-                              size: const Size.square(40),
-                              placeholder: Text(
-                                (_post['username'] ?? '?')[0].toUpperCase(),
-                                style: const TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            )
-                          else
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: AppTheme.primaryColor.withValues(alpha: 0.12),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  (_post['username'] ?? '?')[0].toUpperCase(),
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: AppTheme.primaryColor,
-                                  ),
-                                ),
+                InkWell(
+                  onTap: () {
+                    final userId = _post['user_id'];
+                    if (userId != null) {
+                      context.push('/profile/$userId');
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(18),
+                  child: Row(
+                    children: [
+                      if (_post['avatar'] != null && _post['avatar'].toString().isNotEmpty)
+                        ShadAvatar(
+                          _post['avatar'].toString(),
+                          size: const Size.square(36),
+                          placeholder: Text(
+                            (_post['username'] ?? '?')[0].toUpperCase(),
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                        )
+                      else
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isQuote ? AppTheme.primaryColor : AppTheme.reviewAvatarBg,
+                          ),
+                          child: Center(
+                            child: Text(
+                              (_post['username'] ?? '?')[0].toUpperCase(),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                fontSize: 14,
                               ),
                             ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _post['full_name']?.isNotEmpty == true
-                                      ? _post['full_name']
-                                      : (_post['username'] ?? 'Kullanıcı'),
-                                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: titleColor),
-                                ),
-                                Text(
-                                  '@${_post['username'] ?? 'anonim'}',
-                                  style: TextStyle(color: mutedColor, fontSize: 12),
-                                ),
-                              ],
+                          ),
+                        ),
+                      const SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _post['full_name']?.isNotEmpty == true
+                                ? _post['full_name']
+                                : (_post['username'] ?? 'Kullanıcı'),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                              color: titleColor,
+                            ),
+                          ),
+                          Text(
+                            '@${_post['username'] ?? 'anonim'}',
+                            style: TextStyle(
+                              color: mutedColor,
+                              fontSize: 12,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // ShadBadge: Replik mi Yorum mu
-                ShadBadge.secondary(
-                  backgroundColor: isQuote
-                      ? AppTheme.primaryColor.withValues(alpha: 0.12)
-                      : const Color(0xFF2ECC71).withValues(alpha: 0.12),
-                  foregroundColor: isQuote ? AppTheme.primaryColor : const Color(0xFF2ECC71),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        isQuote ? Icons.format_quote_rounded : Icons.rate_review_outlined,
-                        size: 13,
-                        color: isQuote ? AppTheme.primaryColor : const Color(0xFF2ECC71),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        isQuote ? loc.translate('quotes') : loc.translate('reviews'),
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
                     ],
                   ),
                 ),
-
-                // Kendi Postu İse Düzenle / Sil Menüsü
+                const Spacer(),
+                // Pill Badge (Replik / Yorum)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: badgeBg,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: Text(
+                    badgeLabel,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: badgeText,
+                    ),
+                  ),
+                ),
                 if (isMyPost) ...[
-                  const SizedBox(width: 2),
+                  const SizedBox(width: 4),
                   PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert, size: 20, color: Colors.grey),
+                    icon: Icon(Icons.more_horiz, size: 20, color: mutedColor),
                     padding: EdgeInsets.zero,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     onSelected: (val) {
@@ -355,22 +351,21 @@ class _PostCardState extends State<PostCard> {
                 ],
               ],
             ),
-            const SizedBox(height: 14),
 
-            // Replik İçeriği (Movie Explorer Alıntı Kartı)
+            // 2. Replik Alıntı Metni (border-left: 3.5px solid #F5A623)
             if (isQuote && _post['quote_text'] != null && _post['quote_text'].toString().isNotEmpty)
               Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF13151D) : const Color(0xFFFDFBF7),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border(left: BorderSide(color: AppTheme.primaryColor, width: 3.5)),
+                margin: const EdgeInsets.symmetric(vertical: 14),
+                padding: const EdgeInsets.only(left: 12, top: 2, bottom: 2),
+                decoration: const BoxDecoration(
+                  border: Border(
+                    left: BorderSide(color: AppTheme.primaryColor, width: 3.5),
+                  ),
                 ),
                 child: Text(
                   '“${_post['quote_text']}”',
                   style: TextStyle(
-                    fontSize: 15,
+                    fontSize: 16,
                     fontStyle: FontStyle.italic,
                     fontWeight: FontWeight.w600,
                     color: titleColor,
@@ -379,34 +374,52 @@ class _PostCardState extends State<PostCard> {
                 ),
               ),
 
-            // Kullanıcı Yorumu veya Ek Açıklaması
-            if (_post['content'] != null && _post['content'].toString().isNotEmpty)
+            // 3. Yorum / Rating yıldızları
+            if (!isQuote && ratingVal != null)
               Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Text(
-                  _post['content'],
-                  style: TextStyle(fontSize: 14, height: 1.45, color: isDark ? Colors.white70 : const Color(0xFF3E434D)),
+                padding: const EdgeInsets.only(top: 10, bottom: 4),
+                child: Row(
+                  children: [
+                    const Text('★★★★★', style: TextStyle(color: AppTheme.primaryColor, fontSize: 16, letterSpacing: 1.5)),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${ratingVal.toStringAsFixed(1)}/10',
+                      style: TextStyle(color: mutedColor, fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                  ],
                 ),
               ),
 
-            // İlişkili Film / Dizi Kartı (Movie Explorer Tarzı)
+            // 4. Kullanıcı Düşüncesi / Yorum Metni
+            if (_post['content'] != null && _post['content'].toString().isNotEmpty)
+              Padding(
+                padding: EdgeInsets.only(top: isQuote ? 0 : 4, bottom: 12),
+                child: Text(
+                  _post['content'],
+                  style: TextStyle(
+                    fontSize: 14,
+                    height: 1.5,
+                    color: isDark ? Colors.white70 : const Color(0xFF22252A),
+                  ),
+                ),
+              ),
+
+            // 5. İlişkili Film / Dizi Kartı (.row style="background:#F7F8FA;border-radius:12px;padding:8px")
             if (_post['title'] != null && _post['title'].toString().isNotEmpty)
               InkWell(
-                onTap: tmdbId != null
-                    ? () => context.push('/media/$mediaType/$tmdbId')
-                    : null,
-                borderRadius: BorderRadius.circular(16),
+                onTap: tmdbId != null ? () => context.push('/media/$mediaType/$tmdbId') : null,
+                borderRadius: BorderRadius.circular(12),
                 child: Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF13151D) : const Color(0xFFF7F8FA),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: cardBorder, width: 1),
+                    color: isDark ? const Color(0xFF14151C) : AppTheme.mediaCardBg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: cardBorder, width: 0.8),
                   ),
                   child: Row(
                     children: [
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(8),
                         child: hasPoster
                             ? Image.network(
                                 AppConstants.getPosterUrl(_post['poster_path']),
@@ -416,15 +429,15 @@ class _PostCardState extends State<PostCard> {
                                 errorBuilder: (_, __, ___) => Container(
                                   width: 52,
                                   height: 75,
-                                  color: Colors.grey.shade300,
-                                  child: const Icon(Icons.movie, color: Colors.grey),
+                                  color: AppTheme.placeholderColor,
+                                  child: const Icon(Icons.movie, color: Colors.grey, size: 28),
                                 ),
                               )
                             : Container(
                                 width: 52,
                                 height: 75,
-                                color: Colors.grey.shade300,
-                                child: const Icon(Icons.movie, color: Colors.grey),
+                                color: AppTheme.placeholderColor,
+                                child: const Icon(Icons.movie, color: Colors.grey, size: 28),
                               ),
                       ),
                       const SizedBox(width: 12),
@@ -434,113 +447,136 @@ class _PostCardState extends State<PostCard> {
                           children: [
                             Text(
                               _post['title'] ?? '',
-                              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: titleColor),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                                color: titleColor,
+                              ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              mediaType == 'tv' ? 'Dizi' : 'Film',
+                              '${mediaType == "tv" ? "Dizi" : "Film"}${_post["rating"] != null ? " · ★ ${_post["rating"]} / 10" : ""}',
                               style: TextStyle(fontSize: 12, color: mutedColor),
                             ),
-                            if (_post['rating'] != null) ...[
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  const Icon(Icons.star_rounded, color: AppTheme.starColor, size: 16),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${_post['rating']} / 10',
-                                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: titleColor),
-                                  ),
-                                ],
-                              ),
-                            ],
                           ],
                         ),
                       ),
-                      Icon(Icons.arrow_forward_ios_rounded, size: 14, color: mutedColor),
+                      Icon(Icons.chevron_right_rounded, size: 20, color: mutedColor),
                     ],
                   ),
                 ),
               ),
 
-            const SizedBox(height: 12),
-            const Divider(height: 1),
-            const SizedBox(height: 8),
-
-            // Alt Butonlar: Beğen, Yorum, Paylaş
-            Row(
-              children: [
-                // Beğeni Butonu
-                InkWell(
-                  onTap: widget.onLikeToggle,
-                  borderRadius: BorderRadius.circular(8),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                    child: Row(
-                      children: [
-                        Icon(
-                          isLiked ? Icons.favorite : Icons.favorite_border,
-                          color: isLiked ? Colors.red : theme.iconTheme.color,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          likesCount.toString(),
-                          style: TextStyle(
-                            fontWeight: isLiked ? FontWeight.bold : FontWeight.normal,
-                            color: isLiked ? Colors.red : null,
+            // 6. Alt Çubuk (.g .row: ♡ 142 | 18 Yorum | Paylaş)
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              padding: const EdgeInsets.only(top: 10),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: cardBorder, width: 1),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Beğeni
+                  InkWell(
+                    onTap: widget.onLikeToggle,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                            color: isLiked ? Colors.redAccent : mutedColor,
+                            size: 18,
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-
-                // Yorum Butonu
-                InkWell(
-                  onTap: () {
-                    final postId = int.parse(_post['id'].toString());
-                    showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      useRootNavigator: true,
-                      backgroundColor: Colors.transparent,
-                      builder: (_) => CommentsModal(
-                        postId: postId,
-                        postUserId: postUserId,
-                        onCommentAdded: () {
-                          final currentCount = int.tryParse(_post['comments_count']?.toString() ?? '0') ?? 0;
-                          setState(() {
-                            _post['comments_count'] = (currentCount + 1).toString();
-                          });
-                          widget.onCommentAdd?.call('');
-                        },
-                        onCommentCountChanged: (newCount) {
-                          setState(() {
-                            _post['comments_count'] = newCount.toString();
-                          });
-                          context.read<FeedCubit>().updateCommentCount(postId, newCount);
-                          context.read<ProfileCubit>().updatePostCommentCount(postId, newCount);
-                        },
+                          const SizedBox(width: 6),
+                          Text(
+                            likesCount.toString(),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: isLiked ? FontWeight.w700 : FontWeight.w500,
+                              color: isLiked ? Colors.redAccent : mutedColor,
+                            ),
+                          ),
+                        ],
                       ),
-                    );
-                  },
-                  borderRadius: BorderRadius.circular(8),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                    child: Row(
-                      children: [
-                        Icon(Icons.chat_bubble_outline, size: 20, color: theme.iconTheme.color),
-                        const SizedBox(width: 6),
-                        Text(commentsCount.toString()),
-                      ],
                     ),
                   ),
-                ),
-              ],
+
+                  // Yorum
+                  InkWell(
+                    onTap: () {
+                      final postId = int.parse(_post['id'].toString());
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        useRootNavigator: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (_) => CommentsModal(
+                          postId: postId,
+                          postUserId: postUserId,
+                          onCommentAdded: () {
+                            final currentCount = int.tryParse(_post['comments_count']?.toString() ?? '0') ?? 0;
+                            setState(() {
+                              _post['comments_count'] = (currentCount + 1).toString();
+                            });
+                            widget.onCommentAdd?.call('');
+                          },
+                          onCommentCountChanged: (newCount) {
+                            setState(() {
+                              _post['comments_count'] = newCount.toString();
+                            });
+                            context.read<FeedCubit>().updateCommentCount(postId, newCount);
+                            context.read<ProfileCubit>().updatePostCommentCount(postId, newCount);
+                          },
+                        ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                      child: Row(
+                        children: [
+                          Icon(Icons.chat_bubble_outline_rounded, size: 17, color: mutedColor),
+                          const SizedBox(width: 6),
+                          Text(
+                            '$commentsCount Yorum',
+                            style: TextStyle(fontSize: 12, color: mutedColor),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Paylaş
+                  InkWell(
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Bağlantı kopyalandı! 🎬')),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                      child: Row(
+                        children: [
+                          Icon(Icons.share_outlined, size: 17, color: mutedColor),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Paylaş',
+                            style: TextStyle(fontSize: 12, color: mutedColor),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

@@ -13,7 +13,7 @@ class ExploreScreen extends StatefulWidget {
 }
 
 class _ExploreScreenState extends State<ExploreScreen> {
-  final PageController _pageController = PageController(viewportFraction: 0.92);
+  final PageController _pageController = PageController(viewportFraction: 0.90);
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
   String _selectedCategory = 'trending';
@@ -40,6 +40,37 @@ class _ExploreScreenState extends State<ExploreScreen> {
     context.read<ExploreCubit>().fetchItems(category: category);
   }
 
+  Widget _buildCategoryPill(String title, String category, bool isDark) {
+    final isSelected = _selectedCategory == category && !_isSearching;
+    final activeBg = isDark ? Colors.white : const Color(0xFF111111);
+    final activeText = isDark ? const Color(0xFF111111) : Colors.white;
+    final inactiveBorder = isDark ? AppTheme.darkCardBorder : AppTheme.inputBorderColor;
+    final inactiveText = isDark ? Colors.white70 : const Color(0xFF111111);
+
+    return GestureDetector(
+      onTap: () => _onCategorySelected(category),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+        decoration: BoxDecoration(
+          color: isSelected ? activeBg : Colors.transparent,
+          borderRadius: BorderRadius.circular(99),
+          border: Border.all(
+            color: isSelected ? activeBg : inactiveBorder,
+            width: 1,
+          ),
+        ),
+        child: Text(
+          title,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            color: isSelected ? activeText : inactiveText,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -53,9 +84,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Üst Arama & Kategori Çubuğu (Minimalist)
+            // Üst Kategori Pill'leri ve Arama Butonu
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.only(left: 20, right: 16, top: 12, bottom: 8),
               child: Row(
                 children: [
                   Expanded(
@@ -82,7 +113,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                 const SizedBox(width: 8),
                                 _buildCategoryPill('Top Rated', 'top_rated', isDark),
                                 const SizedBox(width: 8),
-                                _buildCategoryPill('Now Playing', 'now_playing', isDark),
+                                _buildCategoryPill('Now', 'now_playing', isDark),
                                 const SizedBox(width: 8),
                                 _buildCategoryPill('Upcoming', 'upcoming', isDark),
                               ],
@@ -90,7 +121,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           ),
                   ),
                   const SizedBox(width: 8),
-                  // Arama Açma / Kapama Butonu
                   IconButton(
                     icon: Icon(_isSearching ? Icons.close : Icons.search_rounded, color: titleColor),
                     onPressed: () {
@@ -107,7 +137,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
               ),
             ),
 
-            // Dribbble Kart Slider (PageView)
+            // Kart Alanı (Dribbble Movie Explorer Tam Ekran Deneyimi)
             Expanded(
               child: BlocBuilder<ExploreCubit, ExploreState>(
                 builder: (context, state) {
@@ -119,22 +149,19 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
                   if (state is ExploreError) {
                     return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.error_outline, size: 48, color: Colors.grey.shade400),
-                          const SizedBox(height: 12),
-                          Text(
-                            state.message,
-                            style: TextStyle(color: mutedColor),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: () => context.read<ExploreCubit>().fetchItems(category: _selectedCategory),
-                            child: const Text('Tekrar Dene'),
-                          ),
-                        ],
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(state.message, style: TextStyle(color: mutedColor)),
+                            const SizedBox(height: 12),
+                            ElevatedButton(
+                              onPressed: () => context.read<ExploreCubit>().fetchItems(category: _selectedCategory),
+                              child: const Text('Tekrar Dene'),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   }
@@ -152,46 +179,21 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       physics: const BouncingScrollPhysics(),
                       itemCount: items.length,
                       itemBuilder: (context, index) {
-                        final item = items[index];
-                        return MovieExplorerCard(
-                          media: item,
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 8, bottom: 12),
+                          child: MovieExplorerCard(
+                            media: items[index],
+                          ),
                         );
                       },
                     );
                   }
 
-                  return const SizedBox.shrink();
+                  return const SizedBox();
                 },
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCategoryPill(String title, String key, bool isDark) {
-    final isSelected = _selectedCategory == key;
-    if (isSelected) {
-      return ShadButton(
-        height: 36,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        backgroundColor: isDark ? Colors.white : AppTheme.darkText,
-        foregroundColor: isDark ? AppTheme.darkBg : Colors.white,
-        onPressed: () => _onCategorySelected(key),
-        child: Text(title, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
-      );
-    }
-    return ShadButton.outline(
-      height: 36,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      onPressed: () => _onCategorySelected(key),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 12.5,
-          fontWeight: FontWeight.w500,
-          color: isDark ? Colors.white70 : AppTheme.darkText,
         ),
       ),
     );

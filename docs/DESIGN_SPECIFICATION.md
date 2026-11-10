@@ -502,3 +502,4 @@ Tasarımcının oluşturacağı Figma dosyasında aşağıdaki sayfalandırma (P
 * ✍️ **06. Post Studio & Modals:** Yeni Paylaşım ekranı, Arama çekmecesi, Avatar Seçici.
 * 🔐 **07. Auth Flows:** Giriş yap, Kayıt ol, Şifremi unuttum.
 * 🌙 **08. Dark Mode Variants:** Tüm temel ekranların Dark Mode görünümleri.
+

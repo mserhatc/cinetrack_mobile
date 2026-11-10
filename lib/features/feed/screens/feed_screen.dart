@@ -63,7 +63,7 @@ class _FeedScreenState extends State<FeedScreen> {
               Text(
                 'Feed',
                 style: TextStyle(
-                  fontSize: 22,
+                  fontSize: 26,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.5,
                   color: titleColor,
@@ -73,26 +73,30 @@ class _FeedScreenState extends State<FeedScreen> {
           ),
         ),
         actions: [
-          // Dil Seçici
-          TextButton(
-            onPressed: () => context.read<LanguageCubit>().toggleLanguage(),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                border: Border.all(color: isDark ? AppTheme.darkCardBorder : AppTheme.borderColor),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                currentLang.toUpperCase(),
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                  color: titleColor,
+          // Dil Seçici (.pill style)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: GestureDetector(
+              onTap: () => context.read<LanguageCubit>().toggleLanguage(),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  border: Border.all(color: isDark ? AppTheme.darkCardBorder : AppTheme.inputBorderColor),
+                  borderRadius: BorderRadius.circular(99),
+                ),
+                child: Text(
+                  currentLang.toUpperCase(),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                    color: titleColor,
+                  ),
                 ),
               ),
             ),
           ),
-          // Tema Seçici
+          const SizedBox(width: 8),
+          // Tema Değiştirici
           IconButton(
             icon: Icon(
               isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
@@ -102,16 +106,33 @@ class _FeedScreenState extends State<FeedScreen> {
             tooltip: isDark ? loc.translate('theme_light') : loc.translate('theme_dark'),
             onPressed: () => context.read<ThemeCubit>().toggleTheme(),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 8),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/new-post'),
-        backgroundColor: AppTheme.primaryColor,
-        foregroundColor: Colors.white,
-        elevation: 3,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        child: const Icon(Icons.add_rounded, size: 28),
+      floatingActionButton: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: AppTheme.primaryColor,
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primaryColor.withValues(alpha: 0.4),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => context.push('/new-post'),
+            borderRadius: BorderRadius.circular(28),
+            child: const Center(
+              child: Icon(Icons.add, size: 30, color: Colors.white),
+            ),
+          ),
+        ),
       ),
       body: MultiBlocListener(
         listeners: [
@@ -194,7 +215,7 @@ class _FeedScreenState extends State<FeedScreen> {
                 },
                 child: ListView.builder(
                   controller: _scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   itemCount: posts.length,
                   itemBuilder: (context, index) {
                     final post = posts[index];
