@@ -13,9 +13,12 @@ class AppLocalizations {
   static const _localizedValues = <String, Map<String, String>>{
     'tr': {
       'app_title': 'CineTrack',
-      'home': 'Ana Sayfa',
+      'home': 'Feed',
+      'feed': 'Feed',
+      'explore': 'Explore',
+      'you': 'You',
       'new_post': 'Yeni Paylaşım',
-      'profile': 'Ben',
+      'profile': 'Profil',
       'login': 'Giriş Yap',
       'register': 'Kayıt Ol',
       'logout': 'Çıkış Yap',
@@ -59,12 +62,27 @@ class AppLocalizations {
       'already_have_account': 'Zaten hesabınız var mı? Giriş Yapın',
       'follow': 'Takip Et',
       'unfollow': 'Takipten Çık',
+      'cast': 'Cast',
+      'awards': 'Awards',
+      'genres': 'Genres',
+      'storyline': 'Storyline',
+      'country': 'Country',
+      'budget': 'Budget',
+      'cumulative_gross': 'Cumulative Worldwide Gross',
+      'more': 'More',
+      'about': 'About',
+      'born': 'Born',
+      'height': 'Height',
+      'years_active': 'Years Active',
     },
     'en': {
       'app_title': 'CineTrack',
-      'home': 'Home',
+      'home': 'Feed',
+      'feed': 'Feed',
+      'explore': 'Explore',
+      'you': 'You',
       'new_post': 'New Post',
-      'profile': 'Me',
+      'profile': 'You',
       'login': 'Log In',
       'register': 'Sign Up',
       'logout': 'Log Out',
@@ -82,8 +100,8 @@ class AppLocalizations {
       'reviews': 'Reviews',
       'post_quote': 'Share Quote',
       'post_review': 'Share Review',
-      'search_media': 'Search Movie or Show...',
-      'write_quote': 'Write a memorable quote...',
+      'search_media': 'Search movies or series...',
+      'write_quote': 'Write a quote from the movie...',
       'write_review': 'Write your thoughts and review...',
       'share': 'Share',
       'like': 'Like',
@@ -96,24 +114,36 @@ class AppLocalizations {
       'watched': 'Watched',
       'trending': 'Trending',
       'popular_movies': 'Popular Movies',
-      'popular_tv': 'Popular TV Shows',
+      'popular_tv': 'Popular Series',
       'theme_dark': 'Dark Theme',
       'theme_light': 'Light Theme',
       'language': 'Language',
       'no_posts_yet': 'No posts yet.',
-      'must_login': 'Please log in to continue.',
+      'must_login': 'Please log in to perform this action.',
       'login_welcome': 'Welcome!',
-      'login_sub': 'Explore movie & TV show community posts.',
+      'login_sub': 'Discover and discuss cinema with movie lovers.',
       'dont_have_account': "Don't have an account? Sign Up",
       'already_have_account': 'Already have an account? Log In',
       'follow': 'Follow',
       'unfollow': 'Unfollow',
+      'cast': 'Cast',
+      'awards': 'Awards',
+      'genres': 'Genres',
+      'storyline': 'Storyline',
+      'country': 'Country',
+      'budget': 'Budget',
+      'cumulative_gross': 'Cumulative Worldwide Gross',
+      'more': 'More',
+      'about': 'About',
+      'born': 'Born',
+      'height': 'Height',
+      'years_active': 'Years Active',
     },
   };
 
   String translate(String key) {
-    final langCode = locale.languageCode;
-    return _localizedValues[langCode]?[key] ?? _localizedValues['tr']?[key] ?? key;
+    final lang = locale.languageCode;
+    return _localizedValues[lang]?[key] ?? _localizedValues['tr']?[key] ?? key;
   }
 }
 
@@ -131,4 +161,3 @@ class AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
   @override
   bool shouldReload(AppLocalizationsDelegate old) => false;
 }
-
