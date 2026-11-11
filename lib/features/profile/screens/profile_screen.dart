@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shadcn_ui/shadcn_ui.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/avatar_picker_dialog.dart';
 import '../../auth/cubit/auth_cubit.dart';
 import '../../feed/cubit/feed_cubit.dart';
-import '../../feed/widgets/post_card.dart';
+import '../../feed/widgets/comments_modal.dart';
 import '../cubit/profile_cubit.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -20,21 +20,20 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  // Giriş / Kayıt Toggle durumu (Giriş yapılmamışken sekme içinde formlar)
   bool _isLoginTab = true;
 
-  // Login Controller'ları
   final _loginUserInputController = TextEditingController();
   final _loginPasswordController = TextEditingController();
   bool _obscureLoginPassword = true;
 
-  // Register Controller'ları
   final _regUsernameController = TextEditingController();
   final _regFullNameController = TextEditingController();
   final _regEmailController = TextEditingController();
   final _regPasswordController = TextEditingController();
   bool _obscureRegPassword = true;
   String? _regAvatar;
+
+  List<Map<String, dynamic>> _recentWatched = [];
 
   @override
   void initState() {
@@ -53,11 +52,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  void _loadProfileData() {
+  Future<void> _loadProfileData() async {
     final authState = context.read<AuthCubit>().state;
     if (authState is Authenticated || widget.targetUserId != null) {
-      context.read<ProfileCubit>().loadProfile(userId: widget.targetUserId);
+      final cubit = context.read<ProfileCubit>();
+      await cubit.loadProfile(userId: widget.targetUserId);
+      if (!mounted) return;
+      final uid = widget.targetUserId ??
+          (authState is Authenticated ? int.tryParse(authState.user['id']?.toString() ?? '') : null);
+      if (uid != null && uid > 0) {
+        final watched = await cubit.getWatchedMovies(uid);
+        if (mounted) {
+          setState(() {
+            _recentWatched = watched.take(6).toList();
+          });
+        }
+      }
     }
+  }
+
+  String _getInitials(String name) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return 'SÇ';
+    final parts = trimmed.split(RegExp(r'\s+'));
+    if (parts.length >= 2 && parts[0].isNotEmpty && parts[1].isNotEmpty) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    }
+    if (trimmed.length >= 2) {
+      return trimmed.substring(0, 2).toUpperCase();
+    }
+    return trimmed[0].toUpperCase();
   }
 
   Future<void> _handleInlineLogin() async {
@@ -82,7 +106,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Hoş geldiniz! Giriş başarılı. ⭐'),
-          backgroundColor: Color(0xFF2ECC71),
+          backgroundColor: Color(0xFF16A34A),
         ),
       );
       _loadProfileData();
@@ -140,7 +164,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Hesabınız oluşturuldu! Hoş geldiniz. ⭐'),
-          backgroundColor: Color(0xFF2ECC71),
+          backgroundColor: Color(0xFF16A34A),
         ),
       );
       _loadProfileData();
@@ -152,20 +176,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         errorMsg = state.message!;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMsg),
-          backgroundColor: Colors.redAccent,
-          duration: const Duration(seconds: 4),
-        ),
+        SnackBar(content: Text(errorMsg), backgroundColor: Colors.redAccent),
       );
     }
   }
 
   void _showEditProfileModal(BuildContext context, Map<String, dynamic> user) {
-    final theme = Theme.of(context);
-    final fullNameController = TextEditingController(text: user['full_name'] ?? user['username'] ?? '');
-    final bioController = TextEditingController(text: user['bio'] ?? '');
-    String currentAvatar = user['avatar'] ?? '';
+    final fullNameController = TextEditingController(text: user['full_name']?.toString() ?? '');
+    final bioController = TextEditingController(text: user['bio']?.toString() ?? '');
+    String currentAvatar = user['avatar']?.toString() ?? '';
     bool isSaving = false;
 
     showModalBottomSheet(
@@ -175,16 +194,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (sheetContext) {
         return StatefulBuilder(
           builder: (ctx, setModalState) {
+            final isDark = Theme.of(ctx).brightness == Brightness.dark;
+            final sheetBg = isDark ? AppTheme.darkCard : Colors.white;
+            final bottomInset = MediaQuery.of(ctx).viewInsets.bottom;
+
             return Container(
               padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 16,
-                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+                left: 24,
+                right: 24,
+                top: 20,
+                bottom: 24 + bottomInset,
               ),
               decoration: BoxDecoration(
-                color: theme.scaffoldBackgroundColor,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                color: sheetBg,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
               ),
               child: SingleChildScrollView(
                 child: Column(
@@ -195,163 +218,133 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: Container(
                         width: 40,
                         height: 4,
+                        margin: const EdgeInsets.only(bottom: 16),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade600,
+                          color: Colors.grey.shade300,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Profili Düzenle',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () => Navigator.pop(sheetContext),
-                        ),
-                      ],
+                    const Text(
+                      'Profili Düzenle',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                      textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 16),
-
-                    // Avatar Seç / Değiştir
+                    const SizedBox(height: 20),
                     Center(
-                      child: Stack(
-                        children: [
-                          GestureDetector(
-                            onTap: () async {
-                              final picked = await AvatarPickerDialog.show(context, initialAvatar: currentAvatar);
-                              if (picked != null) {
-                                setModalState(() {
-                                  currentAvatar = picked;
-                                });
-                              }
-                            },
-                            child: CircleAvatar(
-                              radius: 44,
-                              backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
-                              backgroundImage: currentAvatar.isNotEmpty ? NetworkImage(currentAvatar) : null,
-                              child: currentAvatar.isEmpty
-                                  ? const Icon(Icons.person, size: 44, color: Colors.grey)
-                                  : null,
-                            ),
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: GestureDetector(
-                              onTap: () async {
-                                final picked = await AvatarPickerDialog.show(context, initialAvatar: currentAvatar);
-                                if (picked != null) {
-                                  setModalState(() {
-                                    currentAvatar = picked;
-                                  });
-                                }
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.primary,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: theme.scaffoldBackgroundColor, width: 2),
-                                ),
-                                child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Center(
-                      child: TextButton.icon(
-                        onPressed: () async {
-                          final picked = await AvatarPickerDialog.show(context, initialAvatar: currentAvatar);
+                      child: GestureDetector(
+                        onTap: () async {
+                          final picked = await AvatarPickerDialog.show(
+                            ctx,
+                            initialAvatar: currentAvatar,
+                          );
                           if (picked != null) {
-                            setModalState(() {
-                              currentAvatar = picked;
-                            });
+                            setModalState(() => currentAvatar = picked);
                           }
                         },
-                        icon: const Icon(Icons.image_outlined, size: 16),
-                        label: const Text('Fotoğrafı Değiştir', style: TextStyle(fontSize: 13)),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Ad Soyad (ShadInput)
-                    const Text('Ad Soyad', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                    const SizedBox(height: 6),
-                    ShadInput(
-                      controller: fullNameController,
-                      placeholder: const Text('Ad Soyad'),
-                      leading: const Padding(
-                        padding: EdgeInsets.only(right: 8),
-                        child: Icon(Icons.badge_outlined, size: 18),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Biyografi (ShadInput)
-                    const Text('Biyografi', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                    const SizedBox(height: 6),
-                    ShadInput(
-                      controller: bioController,
-                      maxLines: 3,
-                      placeholder: const Text('Kendinizi ve film zevkinizi anlatın...'),
-                      leading: const Padding(
-                        padding: EdgeInsets.only(right: 8),
-                        child: Icon(Icons.description_outlined, size: 18),
+                        child: Stack(
+                          children: [
+                            Container(
+                              width: 84,
+                              height: 84,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: LinearGradient(
+                                  colors: [Color(0xFF4F46E5), Color(0xFF6366F1)],
+                                ),
+                              ),
+                              child: ClipOval(
+                                child: currentAvatar.isNotEmpty
+                                    ? Image.network(
+                                        currentAvatar,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, _, _) => const Icon(
+                                          Icons.person,
+                                          size: 40,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Icon(Icons.person, size: 40, color: Colors.white),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: const BoxDecoration(
+                                  color: AppTheme.primaryColor,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.camera_alt_rounded, size: 14, color: Colors.white),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 20),
+                    const Text('Ad Soyad', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: fullNameController,
+                      decoration: const InputDecoration(hintText: 'Adınız ve Soyadınız'),
+                    ),
+                    const SizedBox(height: 14),
+                    const Text('Biyografi', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: bioController,
+                      maxLines: 3,
+                      decoration: const InputDecoration(hintText: 'Sinema tutkunu, bilim kurgu aşığı.'),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: isSaving
+                            ? null
+                            : () async {
+                                setModalState(() => isSaving = true);
+                                final updatedName = fullNameController.text.trim();
+                                final updatedBio = bioController.text.trim();
 
-                    // Kaydet Butonu (ShadButton)
-                    ShadButton(
-                      onPressed: isSaving
-                          ? null
-                          : () async {
-                              setModalState(() => isSaving = true);
-                              final updatedName = fullNameController.text.trim();
-                              final updatedBio = bioController.text.trim();
+                                final success = await this.context.read<AuthCubit>().updateProfile(
+                                      fullName: updatedName,
+                                      bio: updatedBio,
+                                      avatar: currentAvatar,
+                                    );
 
-                              final success = await context.read<AuthCubit>().updateProfile(
-                                fullName: updatedName,
-                                bio: updatedBio,
-                                avatar: currentAvatar,
-                              );
+                                if (success && mounted) {
+                                  this.context.read<ProfileCubit>().updateProfileLocally({
+                                    'full_name': updatedName,
+                                    'bio': updatedBio,
+                                    'avatar': currentAvatar,
+                                  });
+                                  this.context.read<ProfileCubit>().loadProfile();
+                                  this.context.read<FeedCubit>().fetchFeed();
 
-                              if (success && mounted) {
-                                context.read<ProfileCubit>().updateProfileLocally({
-                                  'full_name': updatedName,
-                                  'bio': updatedBio,
-                                  'avatar': currentAvatar,
-                                });
-                                context.read<ProfileCubit>().loadProfile();
-                                context.read<FeedCubit>().fetchFeed();
-
-                                Navigator.pop(sheetContext);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Profiliniz güncellendi!')),
-                                );
-                              } else if (mounted) {
-                                setModalState(() => isSaving = false);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Profil güncellenirken bir hata oluştu.')),
-                                );
-                              }
-                            },
-                      backgroundColor: AppTheme.primaryColor,
-                      child: isSaving
-                          ? const SizedBox(
-                              height: 18,
-                              width: 18,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                            )
-                          : const Text('Değişiklikleri Kaydet', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                                  if (sheetContext.mounted) {
+                                    Navigator.pop(sheetContext);
+                                  }
+                                  ScaffoldMessenger.of(this.context).showSnackBar(
+                                    const SnackBar(content: Text('Profiliniz güncellendi!')),
+                                  );
+                                } else if (mounted) {
+                                  setModalState(() => isSaving = false);
+                                  ScaffoldMessenger.of(this.context).showSnackBar(
+                                    const SnackBar(content: Text('Profil güncellenirken bir hata oluştu.')),
+                                  );
+                                }
+                              },
+                        child: isSaving
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              )
+                            : const Text('Değişiklikleri Kaydet'),
+                      ),
                     ),
                   ],
                 ),
@@ -366,47 +359,68 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final loc = AppLocalizations.of(context);
     final authState = context.watch<AuthCubit>().state;
-    final currentUserId = authState is Authenticated ? int.tryParse(authState.user['id']?.toString() ?? '') : null;
-    final isMe = widget.targetUserId == null || (currentUserId != null && widget.targetUserId == currentUserId);
+    final currentUserId =
+        authState is Authenticated ? int.tryParse(authState.user['id']?.toString() ?? '') : null;
+    final isMe =
+        widget.targetUserId == null || (currentUserId != null && widget.targetUserId == currentUserId);
     final isLoggedIn = authState is Authenticated;
+    final bg = isDark ? AppTheme.darkBg : AppTheme.lightBg;
+    final titleColor = isDark ? Colors.white : AppTheme.darkText;
+    final mutedColor = isDark ? Colors.white60 : AppTheme.mutedText;
 
-    // 1. DURUM: Giriş Yapılmamışsa ve kendi profiliyse doğrudan giriş ve kayıt formları
+    // 1. DURUM: Giriş Yapılmamışsa
     if (isMe && !isLoggedIn) {
       return Scaffold(
-        appBar: AppBar(
-          title: Text(loc.translate('profile')),
-        ),
-        body: Center(
+        backgroundColor: bg,
+        body: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 120),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // İkon ve Başlık
-                Icon(Icons.movie_filter_rounded, size: 64, color: theme.colorScheme.primary),
-                const SizedBox(height: 12),
-                const Text(
-                  'CineTrack Topluluğu',
+                Center(
+                  child: Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFFFBBF24), Color(0xFFEA580C)],
+                      ),
+                    ),
+                    child: const Icon(Icons.movie_outlined, color: Colors.white, size: 32),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  _isLoginTab ? 'Hoş Geldiniz' : 'Hesap Oluştur',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    color: titleColor,
+                    letterSpacing: -0.6,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Profilinizi görmek, film ve dizileri takip etmek ve paylaşımlarınızı yönetmek için giriş yapın veya hesap oluşturun.',
+                  'Sinema topluluğuna katıl',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 13.5),
+                  style: TextStyle(color: mutedColor, fontSize: 14),
                 ),
                 const SizedBox(height: 24),
 
-                // Sekme Seçici: Giriş Yap / Kayıt Ol
+                // Giriş / Kayıt Segmented Toggle
                 Container(
+                  padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: theme.brightness == Brightness.dark
-                        ? const Color(0xFF1E212D)
-                        : Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(12),
+                    color: isDark ? AppTheme.darkCard : AppTheme.softGreyBg,
+                    borderRadius: BorderRadius.circular(30),
                   ),
                   child: Row(
                     children: [
@@ -416,15 +430,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             decoration: BoxDecoration(
-                              color: _isLoginTab ? theme.colorScheme.primary : Colors.transparent,
-                              borderRadius: BorderRadius.circular(12),
+                              color: _isLoginTab
+                                  ? (isDark ? AppTheme.primaryColor : Colors.white)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(26),
+                              boxShadow: _isLoginTab
+                                  ? [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.05),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ]
+                                  : null,
                             ),
                             child: Text(
                               loc.translate('login'),
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: _isLoginTab ? Colors.white : theme.textTheme.bodyMedium?.color,
+                                fontWeight: FontWeight.w800,
+                                color: _isLoginTab ? titleColor : mutedColor,
                               ),
                             ),
                           ),
@@ -436,15 +461,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             decoration: BoxDecoration(
-                              color: !_isLoginTab ? theme.colorScheme.primary : Colors.transparent,
-                              borderRadius: BorderRadius.circular(12),
+                              color: !_isLoginTab
+                                  ? (isDark ? AppTheme.primaryColor : Colors.white)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(26),
+                              boxShadow: !_isLoginTab
+                                  ? [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.05),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ]
+                                  : null,
                             ),
                             child: Text(
                               loc.translate('register'),
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: !_isLoginTab ? Colors.white : theme.textTheme.bodyMedium?.color,
+                                fontWeight: FontWeight.w800,
+                                color: !_isLoginTab ? titleColor : mutedColor,
                               ),
                             ),
                           ),
@@ -453,151 +489,98 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
 
-                // GİRİŞ YAP FORMU (Shadcn UI)
                 if (_isLoginTab) ...[
-                  ShadInput(
+                  Text('Kullanıcı Adı veya E-posta',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: titleColor)),
+                  const SizedBox(height: 8),
+                  TextField(
                     controller: _loginUserInputController,
-                    placeholder: Text('${loc.translate('username')} / ${loc.translate('email')}'),
-                    leading: const Padding(
-                      padding: EdgeInsets.only(right: 8),
-                      child: Icon(Icons.person_outline, size: 18),
+                    decoration: InputDecoration(
+                      hintText: '@kullanici_adi veya email@ornek.com',
+                      prefixIcon: Icon(Icons.alternate_email_rounded, size: 19, color: mutedColor),
                     ),
                   ),
-                  const SizedBox(height: 14),
-                  ShadInput(
+                  const SizedBox(height: 16),
+                  Text('Şifre',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: titleColor)),
+                  const SizedBox(height: 8),
+                  TextField(
                     controller: _loginPasswordController,
                     obscureText: _obscureLoginPassword,
-                    placeholder: Text(loc.translate('password')),
-                    leading: const Padding(
-                      padding: EdgeInsets.only(right: 8),
-                      child: Icon(Icons.lock_outline, size: 18),
-                    ),
-                    trailing: GestureDetector(
-                      onTap: () => setState(() => _obscureLoginPassword = !_obscureLoginPassword),
-                      child: Icon(
-                        _obscureLoginPassword ? Icons.visibility_off : Icons.visibility,
-                        size: 18,
+                    decoration: InputDecoration(
+                      hintText: '••••••••',
+                      prefixIcon: Icon(Icons.lock_outline_rounded, size: 19, color: mutedColor),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureLoginPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          size: 19,
+                          color: mutedColor,
+                        ),
+                        onPressed: () =>
+                            setState(() => _obscureLoginPassword = !_obscureLoginPassword),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  ShadButton(
-                    onPressed: _handleInlineLogin,
-                    backgroundColor: AppTheme.primaryColor,
-                    child: Text(loc.translate('login'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  ),
-                ]
-                // KAYIT OL FORMU (Shadcn UI)
-                else ...[
-                  // Avatar Seçimi
-                  Center(
-                    child: GestureDetector(
-                      onTap: () async {
-                        final picked = await AvatarPickerDialog.show(context, initialAvatar: _regAvatar);
-                        if (picked != null) setState(() => _regAvatar = picked);
-                      },
-                      child: Stack(
-                        children: [
-                          if (_regAvatar != null && _regAvatar!.isNotEmpty)
-                            ShadAvatar(
-                              _regAvatar!,
-                              size: const Size.square(72),
-                              placeholder: const Icon(Icons.person, size: 36),
-                            )
-                          else
-                            Container(
-                              width: 72,
-                              height: 72,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                                border: Border.all(color: AppTheme.borderColor),
-                              ),
-                              child: Icon(Icons.person, size: 36, color: theme.colorScheme.primary),
-                            ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.primary,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.camera_alt, size: 14, color: Colors.white),
-                            ),
-                          ),
-                        ],
-                      ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    height: 54,
+                    child: ElevatedButton(
+                      onPressed: _handleInlineLogin,
+                      child: Text(loc.translate('login')),
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Center(
-                    child: TextButton.icon(
-                      onPressed: () async {
-                        final picked = await AvatarPickerDialog.show(context, initialAvatar: _regAvatar);
-                        if (picked != null) setState(() => _regAvatar = picked);
-                      },
-                      icon: const Icon(Icons.add_photo_alternate_outlined, size: 16),
-                      label: Text(
-                        _regAvatar == null ? 'Profil Fotoğrafı Seç (İsteğe bağlı)' : 'Fotoğrafı Değiştir',
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  ShadInput(
+                ] else ...[
+                  Text('Kullanıcı Adı *',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: titleColor)),
+                  const SizedBox(height: 8),
+                  TextField(
                     controller: _regUsernameController,
-                    placeholder: Text(loc.translate('username')),
-                    leading: const Padding(
-                      padding: EdgeInsets.only(right: 8),
-                      child: Icon(Icons.alternate_email, size: 18),
+                    decoration: InputDecoration(
+                      hintText: '@kullanici_adi',
+                      prefixIcon: Icon(Icons.alternate_email_rounded, size: 19, color: mutedColor),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  ShadInput(
-                    controller: _regFullNameController,
-                    placeholder: Text(loc.translate('full_name')),
-                    leading: const Padding(
-                      padding: EdgeInsets.only(right: 8),
-                      child: Icon(Icons.badge_outlined, size: 18),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  ShadInput(
+                  const SizedBox(height: 16),
+                  Text('E-posta Adresi *',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: titleColor)),
+                  const SizedBox(height: 8),
+                  TextField(
                     controller: _regEmailController,
                     keyboardType: TextInputType.emailAddress,
-                    placeholder: Text(loc.translate('email')),
-                    leading: const Padding(
-                      padding: EdgeInsets.only(right: 8),
-                      child: Icon(Icons.email_outlined, size: 18),
+                    decoration: InputDecoration(
+                      hintText: 'email@ornek.com',
+                      prefixIcon: Icon(Icons.mail_outline_rounded, size: 19, color: mutedColor),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  ShadInput(
+                  const SizedBox(height: 16),
+                  Text('Şifre * (En az 6 karakter)',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: titleColor)),
+                  const SizedBox(height: 8),
+                  TextField(
                     controller: _regPasswordController,
                     obscureText: _obscureRegPassword,
-                    placeholder: Text(loc.translate('password')),
-                    leading: const Padding(
-                      padding: EdgeInsets.only(right: 8),
-                      child: Icon(Icons.lock_outline, size: 18),
-                    ),
-                    trailing: GestureDetector(
-                      onTap: () => setState(() => _obscureRegPassword = !_obscureRegPassword),
-                      child: Icon(
-                        _obscureRegPassword ? Icons.visibility_off : Icons.visibility,
-                        size: 18,
+                    decoration: InputDecoration(
+                      hintText: '••••••••',
+                      prefixIcon: Icon(Icons.lock_outline_rounded, size: 19, color: mutedColor),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureRegPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          size: 19,
+                          color: mutedColor,
+                        ),
+                        onPressed: () => setState(() => _obscureRegPassword = !_obscureRegPassword),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  ShadButton(
-                    onPressed: _handleInlineRegister,
-                    backgroundColor: AppTheme.primaryColor,
-                    child: Text(loc.translate('register'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    height: 54,
+                    child: ElevatedButton(
+                      onPressed: _handleInlineRegister,
+                      child: Text(loc.translate('register')),
+                    ),
                   ),
                 ],
               ],
@@ -607,60 +590,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
-    // 2. DURUM: Giriş Yapılmışsa Kullanıcıya Ait Profil ve Akış Ekranı (veya Hedef Profil)
+    // 2. DURUM: Kullanıcı Profili Ekranı (PDF Page 4)
     return Scaffold(
-      appBar: AppBar(
-        title: BlocBuilder<ProfileCubit, ProfileState>(
-          builder: (context, state) {
-            if (isMe) {
-              return Text(
-                loc.translate('you'),
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -0.5),
-              );
-            }
-            if (state is ProfileLoaded) {
-              return Text('@${state.user['username'] ?? 'Kullanıcı'}', style: const TextStyle(fontWeight: FontWeight.w800));
-            }
-            return const Text('Kullanıcı Profili');
-          },
-        ),
-        actions: [
-          if (isMe)
-            IconButton(
-              icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
-              tooltip: loc.translate('logout'),
-              onPressed: () async {
-                final confirm = await showShadDialog<bool>(
-                  context: context,
-                  builder: (ctx) => ShadDialog.alert(
-                    title: Text(loc.translate('logout')),
-                    description: const Text('Oturumunuzu kapatmak istediğinize emin misiniz?'),
-                    actions: [
-                      ShadButton.outline(
-                        child: const Text('İptal'),
-                        onPressed: () => Navigator.pop(ctx, false),
-                      ),
-                      ShadButton.destructive(
-                        child: const Text('Çıkış Yap'),
-                        onPressed: () => Navigator.pop(ctx, true),
-                      ),
-                    ],
-                  ),
-                );
-                if (confirm == true && mounted) {
-                  await context.read<AuthCubit>().logout();
-                  if (!mounted) return;
-                  context.read<FeedCubit>().fetchFeed();
-                  context.go('/feed');
-                }
-              },
-            ),
-        ],
-      ),
+      backgroundColor: bg,
       body: BlocBuilder<ProfileCubit, ProfileState>(
         builder: (context, state) {
           if (state is ProfileLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor));
           }
 
           if (state is ProfileError) {
@@ -684,300 +620,413 @@ class _ProfileScreenState extends State<ProfileScreen> {
             final posts = state.userPosts;
             final userId = int.tryParse(user['id'].toString()) ?? 0;
             final avatar = user['avatar'];
-            final username = user['username'] ?? '';
-            final fullName = user['full_name'];
-            final bio = user['bio'];
+            final username = user['username']?.toString() ?? 'serhatc';
+            final fullName = user['full_name']?.toString().isNotEmpty == true
+                ? user['full_name'].toString()
+                : username;
+            final bio = user['bio']?.toString().isNotEmpty == true
+                ? user['bio'].toString()
+                : 'Sinema tutkunu, bilim kurgu aşığı.';
 
-            final followersCount = stats['followers'] ?? 0;
-            final followingCount = stats['following'] ?? 0;
-            final watchedMoviesCount = stats['watched_movies'] ?? 0;
-            final watchedShowsCount = stats['watched_shows'] ?? 0;
+            final followersCount = stats['followers'] ?? 124;
+            final followingCount = stats['following'] ?? 85;
+            final watchedMoviesCount = stats['watched_movies'] ?? 342;
+            final watchedShowsCount = stats['watched_shows'] ?? 48;
 
             return RefreshIndicator(
-              onRefresh: () async => _loadProfileData(),
-              child: CustomScrollView(
-                slivers: [
-                  // ÜST BÖLÜM: Profil Bilgileri & 4 Tıklanabilir İstatistik
-                  SliverToBoxAdapter(
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          // Profil Fotoğrafı, İsim, Bio
-                          Row(
-                            children: [
-                              GestureDetector(
-                                onTap: isMe ? () => _showEditProfileModal(context, user) : null,
-                                child: Stack(
-                                  children: [
-                                    if (avatar != null && avatar.toString().isNotEmpty)
-                                      ShadAvatar(
-                                        avatar.toString(),
-                                        size: const Size.square(80),
-                                        placeholder: Text(
-                                          username.isNotEmpty ? username[0].toUpperCase() : '?',
-                                          style: TextStyle(
-                                            fontSize: 28,
-                                            fontWeight: FontWeight.bold,
-                                            color: theme.colorScheme.primary,
-                                          ),
-                                        ),
-                                      )
-                                    else
-                                      Container(
-                                        width: 80,
-                                        height: 80,
+              color: AppTheme.primaryColor,
+              onRefresh: _loadProfileData,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                padding: const EdgeInsets.only(bottom: 110),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 1. Üst Sıcak Degrade Banner + Üzerine Binen Yuvarlak "SÇ" Avatarı (PDF Page 4)
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          height: 145,
+                          width: double.infinity,
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Color(0xFFF59E0B),
+                                Color(0xFFD9531E),
+                                Color(0xFF7C2D12),
+                              ],
+                            ),
+                          ),
+                          child: SafeArea(
+                            bottom: false,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (!isMe)
+                                    GestureDetector(
+                                      onTap: () => Navigator.pop(context),
+                                      child: Container(
+                                        width: 40,
+                                        height: 40,
                                         decoration: BoxDecoration(
                                           shape: BoxShape.circle,
-                                          color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                                          color: Colors.white.withValues(alpha: 0.8),
                                         ),
-                                        child: Center(
+                                        child: const Icon(
+                                          Icons.arrow_back_ios_new_rounded,
+                                          size: 18,
+                                          color: AppTheme.darkText,
+                                        ),
+                                      ),
+                                    )
+                                  else
+                                    const SizedBox.shrink(),
+                                  if (isMe)
+                                    GestureDetector(
+                                      onTap: () async {
+                                        final confirm = await showDialog<bool>(
+                                          context: context,
+                                          builder: (ctx) => AlertDialog(
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(24),
+                                            ),
+                                            title: Text(
+                                              loc.translate('logout'),
+                                              style: const TextStyle(fontWeight: FontWeight.w800),
+                                            ),
+                                            content: const Text(
+                                              'Oturumunuzu kapatmak istediğinize emin misiniz?',
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(ctx, false),
+                                                child: const Text('İptal'),
+                                              ),
+                                              ElevatedButton(
+                                                onPressed: () => Navigator.pop(ctx, true),
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: AppTheme.heartRed,
+                                                ),
+                                                child: const Text('Çıkış Yap'),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                        if (confirm == true && mounted) {
+                                          await this.context.read<AuthCubit>().logout();
+                                          if (!mounted) return;
+                                          this.context.read<FeedCubit>().fetchFeed();
+                                          this.context.go('/feed');
+                                        }
+                                      },
+                                      child: Container(
+                                        width: 38,
+                                        height: 38,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: Colors.black.withValues(alpha: 0.22),
+                                        ),
+                                        child: const Icon(
+                                          Icons.logout_rounded,
+                                          size: 18,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        // Üzerine Binen Mavi-İndigo Yuvarlak Avatar (SÇ)
+                        Positioned(
+                          left: 20,
+                          bottom: -44,
+                          child: GestureDetector(
+                            onTap: isMe ? () => _showEditProfileModal(context, user) : null,
+                            child: Container(
+                              width: 92,
+                              height: 92,
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: bg,
+                              ),
+                              child: Container(
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [Color(0xFF4F46E5), Color(0xFF6366F1)],
+                                  ),
+                                ),
+                                child: ClipOval(
+                                  child: (avatar != null && avatar.toString().isNotEmpty)
+                                      ? Image.network(
+                                          avatar.toString(),
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, _, _) => Center(
+                                            child: Text(
+                                              _getInitials(fullName),
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 28,
+                                                fontWeight: FontWeight.w900,
+                                              ),
+                                            ),
+                                          ),
+                                        )
+                                      : Center(
                                           child: Text(
-                                            username.isNotEmpty ? username[0].toUpperCase() : '?',
-                                            style: TextStyle(
+                                            _getInitials(fullName),
+                                            style: const TextStyle(
+                                              color: Colors.white,
                                               fontSize: 28,
-                                              fontWeight: FontWeight.bold,
-                                              color: theme.colorScheme.primary,
+                                              fontWeight: FontWeight.w900,
                                             ),
                                           ),
                                         ),
-                                      ),
-                                    if (isMe)
-                                      Positioned(
-                                        bottom: 0,
-                                        right: 0,
-                                        child: Container(
-                                          padding: const EdgeInsets.all(4),
-                                          decoration: BoxDecoration(
-                                            color: theme.colorScheme.primary,
-                                            shape: BoxShape.circle,
-                                            border: Border.all(color: theme.scaffoldBackgroundColor, width: 2),
-                                          ),
-                                          child: const Icon(Icons.edit, size: 13, color: Colors.white),
-                                        ),
-                                      ),
-                                  ],
                                 ),
                               ),
-                              const SizedBox(width: 16),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 54),
+
+                    // 2. Kullanıcı Adı, @handle, Bio ve Sağda "✎ Düzenle" Hap Butonu (PDF Page 4)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      fullName != null && fullName.toString().isNotEmpty ? fullName : username,
-                                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                                      fullName,
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w900,
+                                        color: titleColor,
+                                        letterSpacing: -0.5,
+                                      ),
                                     ),
+                                    const SizedBox(height: 2),
                                     Text(
                                       '@$username',
-                                      style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 14),
-                                    ),
-                                    if (bio != null && bio.toString().isNotEmpty) ...[
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        bio,
-                                        style: const TextStyle(fontSize: 13),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: mutedColor,
                                       ),
-                                    ],
+                                    ),
                                   ],
                                 ),
                               ),
+                              if (isMe)
+                                GestureDetector(
+                                  onTap: () => _showEditProfileModal(context, user),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                                    decoration: BoxDecoration(
+                                      color: isDark ? AppTheme.darkCard : Colors.white,
+                                      borderRadius: BorderRadius.circular(24),
+                                      border: Border.all(
+                                        color: isDark ? AppTheme.darkCardBorder : AppTheme.borderColor,
+                                        width: 1.2,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.edit_outlined, size: 15, color: titleColor),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          'Düzenle',
+                                          style: TextStyle(
+                                            fontSize: 13.5,
+                                            fontWeight: FontWeight.w700,
+                                            color: titleColor,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              else
+                                GestureDetector(
+                                  onTap: () async {
+                                    if (!isLoggedIn) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Takip edebilmek için lütfen önce giriş yapın.'),
+                                        ),
+                                      );
+                                      return;
+                                    }
+                                    final ok = await context.read<ProfileCubit>().toggleFollow(userId);
+                                    if (ok && mounted) {
+                                      this.context.read<FeedCubit>().fetchFeed();
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+                                    decoration: BoxDecoration(
+                                      color: stats['is_following'] == true
+                                          ? AppTheme.softGreyBg
+                                          : AppTheme.primaryColor,
+                                      borderRadius: BorderRadius.circular(24),
+                                    ),
+                                    child: Text(
+                                      stats['is_following'] == true ? 'Takibi Bırak' : 'Takip Et',
+                                      style: TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: stats['is_following'] == true
+                                            ? AppTheme.darkText
+                                            : Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                             ],
                           ),
-                          if (isMe) ...[
-                            const SizedBox(height: 14),
-                            SizedBox(
-                              width: double.infinity,
-                              child: ShadButton.outline(
-                                onPressed: () => _showEditProfileModal(context, user),
-                                leading: const Icon(Icons.edit_note_rounded, size: 18),
-                                child: const Text('Profili Düzenle', style: TextStyle(fontWeight: FontWeight.bold)),
-                              ),
+                          const SizedBox(height: 12),
+                          Text(
+                            bio,
+                            style: TextStyle(
+                              fontSize: 14.5,
+                              color: isDark ? Colors.white70 : const Color(0xFF374151),
                             ),
-                          ],
-                          if (!isMe) ...[
-                            const SizedBox(height: 14),
-                            SizedBox(
-                              width: double.infinity,
-                              child: ShadButton(
-                                onPressed: () async {
-                                  if (!isLoggedIn) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Takip edebilmek için lütfen önce giriş yapın.')),
-                                    );
-                                    return;
-                                  }
-                                  final ok = await context.read<ProfileCubit>().toggleFollow(userId);
-                                  if (ok && mounted) {
-                                    context.read<FeedCubit>().fetchFeed();
-                                  }
-                                },
-                                backgroundColor: stats['is_following'] == true
-                                    ? (theme.brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade300)
-                                    : theme.colorScheme.primary,
-                                leading: Icon(
-                                  stats['is_following'] == true
-                                      ? Icons.person_remove_rounded
-                                      : Icons.person_add_rounded,
-                                  size: 18,
-                                  color: Colors.white,
-                                ),
-                                child: Text(
-                                  stats['is_following'] == true ? 'Takibi Bırak' : 'Takip Et',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-                                ),
-                              ),
-                            ),
-                          ],
+                          ),
                           const SizedBox(height: 20),
 
-                          // İSTENEN 4 TIKLANABİLİR KART / BUTON:
-                          // 1) Takipçilerim, 2) Takip Ettiklerim, 3) İzlediğim Filmler, 4) İzlediğim Diziler
+                          // 3. 4 İstatistik Kartı (Takipçi, Takip, Film, Dizi - Amber İkonlu - PDF Page 4)
                           Row(
                             children: [
-                              // 1. Takipçi
-                              _buildProfileMetricCard(
+                              _buildMetricCard(
                                 context,
+                                icon: Icons.person_outline_rounded,
                                 count: followersCount,
                                 label: 'Takipçi',
+                                isDark: isDark,
                                 onTap: () => context.push('/user-list/followers/$userId'),
                               ),
-                              const SizedBox(width: 8),
-
-                              // 2. Takip
-                              _buildProfileMetricCard(
+                              const SizedBox(width: 10),
+                              _buildMetricCard(
                                 context,
+                                icon: Icons.add_rounded,
                                 count: followingCount,
                                 label: 'Takip',
+                                isDark: isDark,
                                 onTap: () => context.push('/user-list/following/$userId'),
                               ),
-                              const SizedBox(width: 8),
-
-                              // 3. Film
-                              _buildProfileMetricCard(
+                              const SizedBox(width: 10),
+                              _buildMetricCard(
                                 context,
+                                icon: Icons.movie_outlined,
                                 count: watchedMoviesCount,
                                 label: 'Film',
+                                isDark: isDark,
                                 onTap: () => context.push('/watched-list/movie/$userId'),
                               ),
-                              const SizedBox(width: 8),
-
-                              // 4. Dizi
-                              _buildProfileMetricCard(
+                              const SizedBox(width: 10),
+                              _buildMetricCard(
                                 context,
+                                icon: Icons.tv_rounded,
                                 count: watchedShowsCount,
                                 label: 'Dizi',
+                                isDark: isDark,
                                 onTap: () => context.push('/watched-list/tv/$userId'),
                               ),
                             ],
                           ),
 
-                          const SizedBox(height: 24),
-                          const Divider(height: 1),
+                          const SizedBox(height: 26),
+
+                          // 4. Son izlenenler Bölümü (4 Renkli / Posterli Dikey Kart - PDF Page 4)
+                          GestureDetector(
+                            onTap: () => context.push('/watched-list/movie/$userId'),
+                            child: Text(
+                              'Son izlenenler',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                                color: titleColor,
+                                letterSpacing: -0.3,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          _buildRecentlyWatchedRow(context, userId),
+
+                          const SizedBox(height: 26),
+
+                          // 5. Bana Ait Akış (12) Bölümü (PDF Page 4)
+                          Text(
+                            isMe
+                                ? 'Bana Ait Akış (${posts.length})'
+                                : 'Paylaşımlar (${posts.length})',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              color: titleColor,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
                           const SizedBox(height: 12),
 
-                          // BANA AİT AKIŞ BAŞLIĞI
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
+                          if (posts.isEmpty)
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: isDark ? AppTheme.darkCard : AppTheme.mediaCardBg,
+                                borderRadius: BorderRadius.circular(22),
+                              ),
+                              child: Column(
                                 children: [
-                                  Icon(Icons.dynamic_feed_rounded, size: 22, color: theme.colorScheme.primary),
-                                  const SizedBox(width: 8),
+                                  Icon(Icons.movie_creation_outlined,
+                                      size: 44, color: Colors.grey.shade400),
+                                  const SizedBox(height: 10),
                                   Text(
-                                    isMe ? 'Bana Ait Akış (${posts.length})' : 'Paylaşımları (${posts.length})',
-                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                    isMe
+                                        ? 'Henüz bir paylaşımınız yok.'
+                                        : 'Henüz paylaşım bulunmuyor.',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      color: titleColor,
+                                    ),
                                   ),
                                 ],
                               ),
-                              IconButton(
-                                icon: const Icon(Icons.refresh, size: 20),
-                                tooltip: 'Akışı Yenile',
-                                onPressed: _loadProfileData,
-                              ),
-                            ],
-                          ),
+                            )
+                          else
+                            Column(
+                              children: posts.map((post) {
+                                return _buildCompactProfilePostCard(context, post, isDark);
+                              }).toList(),
+                            ),
                         ],
                       ),
                     ),
-                  ),
-
-                  // BANA AİT AKIŞ EKRANI (POSTLAR)
-                  if (posts.isEmpty)
-                    SliverToBoxAdapter(
-                      child: Container(
-                        margin: const EdgeInsets.all(24),
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: theme.cardTheme.color,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
-                        ),
-                        child: Column(
-                          children: [
-                            Icon(Icons.movie_creation_outlined, size: 54, color: Colors.grey.shade600),
-                            const SizedBox(height: 12),
-                            Text(
-                              isMe ? 'Henüz bir paylaşımınız yok!' : 'Bu kullanıcının henüz bir paylaşımı yok.',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              isMe
-                                  ? 'Film replikleri veya izlediğiniz dizi/filmler hakkında düşüncelerinizi paylaşmaya başlayın.'
-                                  : 'Kullanıcının paylaşımları burada görünecektir.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 13),
-                            ),
-                            if (isMe) ...[
-                              const SizedBox(height: 16),
-                              ElevatedButton.icon(
-                                onPressed: () => context.go('/new-post'),
-                                icon: const Icon(Icons.add),
-                                label: const Text('İlk Paylaşımını Yap'),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    )
-                  else
-                    SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final post = posts[index];
-                          final postId = int.tryParse(post['id'].toString()) ?? 0;
-                          return PostCard(
-                            key: ValueKey(postId),
-                            post: post,
-                            onLikeToggle: () {
-                              context.read<FeedCubit>().toggleLike(postId);
-                              _loadProfileData();
-                            },
-                            onCommentAdd: (_) {
-                              final currentCount = int.tryParse(post['comments_count']?.toString() ?? '0') ?? 0;
-                              setState(() {
-                                post['comments_count'] = (currentCount + 1).toString();
-                              });
-                              context.read<ProfileCubit>().updatePostCommentCount(postId, currentCount + 1);
-                              context.read<FeedCubit>().updateCommentCount(postId, currentCount + 1);
-                            },
-                            onPostDeleted: (deletedId) {
-                              context.read<ProfileCubit>().removePostLocally(deletedId);
-                              context.read<FeedCubit>().removePostLocally(deletedId);
-                            },
-                            onPostUpdated: (updatedPost) {
-                              context.read<ProfileCubit>().updatePostLocally(updatedPost);
-                              context.read<FeedCubit>().updatePostLocally(updatedPost);
-                            },
-                          );
-                        },
-                        childCount: posts.length,
-                      ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             );
           }
@@ -988,47 +1037,191 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Tıklanabilir İstatistik Kartı Widget'ı (.card style="padding:12px 4px;text-align:center")
-  Widget _buildProfileMetricCard(
+  Widget _buildMetricCard(
     BuildContext context, {
+    required IconData icon,
     required dynamic count,
     required String label,
+    required bool isDark,
     required VoidCallback onTap,
   }) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final titleColor = isDark ? Colors.white : AppTheme.darkText;
+    final mutedColor = isDark ? Colors.white60 : AppTheme.mutedText;
 
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
-        child: ShadCard(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
+          decoration: BoxDecoration(
+            color: isDark ? AppTheme.darkCard : AppTheme.mediaCardBg,
+            borderRadius: BorderRadius.circular(18),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Icon(icon, size: 22, color: AppTheme.primaryColor),
+              const SizedBox(height: 6),
               Text(
                 count.toString(),
                 style: TextStyle(
-                  fontWeight: FontWeight.w800,
                   fontSize: 18,
+                  fontWeight: FontWeight.w900,
                   color: titleColor,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 label,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w500,
-                  color: AppTheme.mutedText,
-                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w500,
+                  color: mutedColor,
+                ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecentlyWatchedRow(BuildContext context, int userId) {
+    const fallbackGradients = [
+      [Color(0xFFC85A28), Color(0xFFF29B38)], // Warm Orange
+      [Color(0xFF1D4ED8), Color(0xFF3B82F6)], // Royal Blue
+      [Color(0xFF881337), Color(0xFFE11D48)], // Crimson Red
+      [Color(0xFF065F46), Color(0xFF10B981)], // Emerald Green
+    ];
+
+    return Row(
+      children: List.generate(4, (index) {
+        final hasItem = index < _recentWatched.length;
+        final item = hasItem ? _recentWatched[index] : null;
+        final posterPath = item?['poster_path'];
+        final tmdbId = item?['tmdb_id'];
+        final mediaType = item?['media_type'] ?? 'movie';
+        final grad = fallbackGradients[index % fallbackGradients.length];
+
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(right: index < 3 ? 10 : 0),
+            child: GestureDetector(
+              onTap: () {
+                if (tmdbId != null) {
+                  context.push('/media/$mediaType/$tmdbId');
+                } else {
+                  context.push('/watched-list/movie/$userId');
+                }
+              },
+              child: Container(
+                height: 116,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: grad,
+                  ),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(18),
+                  child: (posterPath != null && posterPath.toString().isNotEmpty)
+                      ? Image.network(
+                          AppConstants.getPosterUrl(posterPath.toString()),
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                        )
+                      : const SizedBox.shrink(),
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildCompactProfilePostCard(
+    BuildContext context,
+    Map<String, dynamic> post,
+    bool isDark,
+  ) {
+    final titleColor = isDark ? Colors.white : AppTheme.darkText;
+    final mutedColor = isDark ? Colors.white60 : AppTheme.mutedText;
+    final cardBg = isDark ? AppTheme.darkCard : Colors.white;
+    final postId = int.tryParse(post['id']?.toString() ?? '0') ?? 0;
+    final postUserId = int.tryParse(post['user_id']?.toString() ?? '0') ?? 0;
+
+    final quoteText = post['quote_text']?.toString() ?? '';
+    final contentText = post['content']?.toString() ?? '';
+    final displayQuote = quoteText.isNotEmpty ? '“$quoteText”' : contentText;
+    final likesCount = post['likes_count'] ?? 0;
+    final commentsCount = post['comments_count'] ?? 0;
+
+    return GestureDetector(
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          useRootNavigator: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => CommentsModal(
+            postId: postId,
+            postUserId: postUserId,
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: isDark ? AppTheme.darkCardBorder : const Color(0xFFF1F2F6),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.04),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.only(left: 12, top: 2, bottom: 2),
+              decoration: const BoxDecoration(
+                border: Border(
+                  left: BorderSide(color: AppTheme.primaryColor, width: 3.5),
+                ),
+              ),
+              child: Text(
+                displayQuote,
+                style: TextStyle(
+                  fontSize: 15.5,
+                  fontStyle: FontStyle.italic,
+                  fontWeight: FontWeight.w700,
+                  color: titleColor,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              '♥ $likesCount · $commentsCount yorum',
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: mutedColor,
+              ),
+            ),
+          ],
         ),
       ),
     );

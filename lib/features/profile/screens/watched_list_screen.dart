@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_theme.dart';
@@ -100,16 +99,16 @@ class _WatchedListScreenState extends State<WatchedListScreen> {
 
                     return InkWell(
                       onTap: () => context.push('/media/${widget.mediaType}/$tmdbId'),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(18),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(18),
                         child: Stack(
                           fit: StackFit.expand,
                           children: [
                             Image.network(
                               AppConstants.getPosterUrl(poster),
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
+                              errorBuilder: (_, _, _) => Container(
                                 color: isDark ? AppTheme.darkCard : Colors.grey.shade200,
                                 child: Icon(Icons.movie, color: mutedColor),
                               ),
@@ -118,9 +117,12 @@ class _WatchedListScreenState extends State<WatchedListScreen> {
                               Positioned(
                                 top: 6,
                                 right: 6,
-                                child: ShadBadge(
-                                  backgroundColor: Colors.black.withValues(alpha: 0.7),
+                                child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.72),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
@@ -148,7 +150,10 @@ class _WatchedListScreenState extends State<WatchedListScreen> {
                                   gradient: LinearGradient(
                                     begin: Alignment.bottomCenter,
                                     end: Alignment.topCenter,
-                                    colors: [Colors.black.withValues(alpha: 0.85), Colors.transparent],
+                                    colors: [
+                                      Colors.black.withValues(alpha: 0.85),
+                                      Colors.transparent,
+                                    ],
                                   ),
                                 ),
                                 child: Text(

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_theme.dart';
 
 class MainNavigationScreen extends StatelessWidget {
@@ -17,84 +16,101 @@ class MainNavigationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final loc = AppLocalizations.of(context);
-    final bg = isDark ? AppTheme.darkCard : Colors.white;
-    const activeColor = AppTheme.primaryColor;
-    final inactiveColor = isDark ? Colors.white54 : AppTheme.mutedText;
-    final borderColor = isDark ? AppTheme.darkCardBorder : AppTheme.borderColor;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currentIndex = navigationShell.currentIndex;
 
     return Scaffold(
       backgroundColor: isDark ? AppTheme.darkBg : AppTheme.lightBg,
+      extendBody: true,
       body: navigationShell,
-      bottomNavigationBar: Container(
-        height: 84,
-        decoration: BoxDecoration(
-          color: bg,
-          border: Border(
-            top: BorderSide(
-              color: borderColor,
-              width: 1,
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(32, 0, 32, 16),
+          child: Container(
+            height: 64,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: AppTheme.floatingNavBg,
+              borderRadius: BorderRadius.circular(40),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.22),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildNavItem(
+                  index: 0,
+                  isSelected: currentIndex == 0,
+                  icon: Icons.home_outlined,
+                  label: 'Feed',
+                ),
+                _buildNavItem(
+                  index: 1,
+                  isSelected: currentIndex == 1,
+                  icon: Icons.search_rounded,
+                  label: 'Explore',
+                ),
+                _buildNavItem(
+                  index: 2,
+                  isSelected: currentIndex == 2,
+                  icon: Icons.person_outline_rounded,
+                  label: 'You',
+                ),
+              ],
             ),
           ),
         ),
-        child: Theme(
-          data: theme.copyWith(
-            splashColor: Colors.transparent,
-            highlightColor: Colors.transparent,
-          ),
-          child: BottomNavigationBar(
-            backgroundColor: Colors.transparent,
-            currentIndex: navigationShell.currentIndex,
-            onTap: _onItemTapped,
-            selectedItemColor: activeColor,
-            unselectedItemColor: inactiveColor,
-            selectedFontSize: 12,
-            unselectedFontSize: 12,
-            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w800),
-            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
-            type: BottomNavigationBarType.fixed,
-            elevation: 0,
-            items: [
-              // 1. Feed
-              BottomNavigationBarItem(
-                icon: const Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Icon(Icons.home_outlined, size: 22),
+      ),
+    );
+  }
+
+  Widget _buildNavItem({
+    required int index,
+    required bool isSelected,
+    required IconData icon,
+    required String label,
+  }) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _onItemTapped(index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.symmetric(
+          horizontal: isSelected ? 22 : 18,
+          vertical: 11,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.primaryColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(30),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 22,
+              color: isSelected ? Colors.white : AppTheme.floatingNavInactive,
+            ),
+            if (isSelected) ...[
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.2,
                 ),
-                activeIcon: const Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Icon(Icons.home_rounded, size: 22),
-                ),
-                label: loc.translate('feed'),
-              ),
-              // 2. Explore
-              BottomNavigationBarItem(
-                icon: const Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Icon(Icons.search_rounded, size: 22),
-                ),
-                activeIcon: const Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Icon(Icons.search_rounded, size: 22),
-                ),
-                label: loc.translate('explore'),
-              ),
-              // 3. You
-              BottomNavigationBarItem(
-                icon: const Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Icon(Icons.person_outline_rounded, size: 22),
-                ),
-                activeIcon: const Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Icon(Icons.person_rounded, size: 22),
-                ),
-                label: loc.translate('you'),
               ),
             ],
-          ),
+          ],
         ),
       ),
     );

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shadcn_ui/shadcn_ui.dart';
 import '../theme/app_theme.dart';
 
 class AvatarPickerDialog extends StatefulWidget {
@@ -8,7 +7,7 @@ class AvatarPickerDialog extends StatefulWidget {
   const AvatarPickerDialog({super.key, this.initialAvatar});
 
   static Future<String?> show(BuildContext context, {String? initialAvatar}) {
-    return showShadDialog<String>(
+    return showDialog<String>(
       context: context,
       builder: (ctx) => AvatarPickerDialog(initialAvatar: initialAvatar),
     );
@@ -36,7 +35,9 @@ class _AvatarPickerDialogState extends State<AvatarPickerDialog> {
   @override
   void initState() {
     super.initState();
-    _selectedAvatar = widget.initialAvatar ?? _presetAvatars.first;
+    _selectedAvatar = (widget.initialAvatar != null && widget.initialAvatar!.isNotEmpty)
+        ? widget.initialAvatar!
+        : _presetAvatars.first;
     _urlController = TextEditingController(text: widget.initialAvatar ?? '');
   }
 
@@ -48,103 +49,114 @@ class _AvatarPickerDialogState extends State<AvatarPickerDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return ShadDialog(
-      title: const Text('Profil Fotoğrafı Seç'),
-      actions: [
-        ShadButton.outline(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('İptal'),
-        ),
-        ShadButton(
-          onPressed: () {
-            Navigator.pop(context, _selectedAvatar.trim());
-          },
-          backgroundColor: AppTheme.primaryColor,
-          child: const Text('Seç', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        ),
-      ],
-      child: SizedBox(
-        width: 320,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Canlı Önizleme (ShadAvatar)
-              if (_selectedAvatar.isNotEmpty)
-                ShadAvatar(
-                  _selectedAvatar,
-                  size: const Size.square(80),
-                  placeholder: const Icon(Icons.person, size: 40),
-                )
-              else
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Color(0xFFF0F1F5),
-                  ),
-                  child: const Icon(Icons.person, size: 40, color: Colors.grey),
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      title: const Text(
+        'Profil Fotoğrafı Seç',
+        style: TextStyle(fontWeight: FontWeight.w800),
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 80,
+                height: 80,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppTheme.softGreyBg,
                 ),
-              const SizedBox(height: 16),
-              const Text(
-                'Hazır Avatarlardan Seçin:',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                child: ClipOval(
+                  child: Image.network(
+                    _selectedAvatar,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => const Icon(Icons.person, size: 40),
+                  ),
+                ),
               ),
-              const SizedBox(height: 12),
-              // Preset Avatar Grid
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                alignment: WrapAlignment.center,
-                children: _presetAvatars.map((url) {
-                  final isSelected = _selectedAvatar == url;
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedAvatar = url;
-                        _urlController.text = url;
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isSelected ? AppTheme.primaryColor : Colors.transparent,
-                          width: 2.5,
-                        ),
-                      ),
-                      child: ShadAvatar(
-                        url,
-                        size: const Size.square(42),
-                        placeholder: const Icon(Icons.person, size: 20),
+            ),
+            const SizedBox(height: 18),
+            const Text(
+              'Hazır Sinema Karakterleri:',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: _presetAvatars.map((avatarUrl) {
+                final isSelected = _selectedAvatar == avatarUrl;
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedAvatar = avatarUrl;
+                      _urlController.text = avatarUrl;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isSelected ? AppTheme.primaryColor : Colors.transparent,
+                        width: 2.5,
                       ),
                     ),
-                  );
-                }).toList(),
+                    child: ClipOval(
+                      child: Image.network(
+                        avatarUrl,
+                        width: 48,
+                        height: 48,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => const Icon(Icons.person, size: 24),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 18),
+            const Text(
+              'Veya Özel Görsel Bağlantısı (URL):',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _urlController,
+              decoration: const InputDecoration(
+                hintText: 'https://ornek.com/foto.jpg',
+                prefixIcon: Icon(Icons.link, size: 18),
               ),
-              const SizedBox(height: 18),
-              const Divider(),
-              const SizedBox(height: 8),
-              // Özel URL Alanı (ShadInput)
-              ShadInput(
-                controller: _urlController,
-                placeholder: const Text('https://ornek.com/foto.jpg'),
-                leading: const Padding(
-                  padding: EdgeInsets.only(right: 8),
-                  child: Icon(Icons.link_rounded, size: 18),
-                ),
-                onChanged: (val) {
+              onChanged: (val) {
+                if (val.trim().startsWith('http')) {
                   setState(() {
                     _selectedAvatar = val.trim();
                   });
-                },
-              ),
-            ],
-          ),
+                }
+              },
+            ),
+          ],
         ),
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('İptal', style: TextStyle(color: AppTheme.mutedText)),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(context, _selectedAvatar.trim()),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.primaryColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          ),
+          child: const Text(
+            'Seç',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ),
+      ],
     );
   }
 }

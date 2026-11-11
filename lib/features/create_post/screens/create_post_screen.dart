@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_theme.dart';
@@ -18,13 +17,21 @@ class CreatePostScreen extends StatefulWidget {
 }
 
 class _CreatePostScreenState extends State<CreatePostScreen> {
-  int _selectedTab = 0; // 0: Quote, 1: Review
+  int _selectedTab = 0; // 0: Quote (Replik Paylaş), 1: Review (İnceleme & Puan)
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _quoteController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
 
   Map<String, dynamic>? _selectedMedia;
-  double _rating = 8.0;
+  double _rating = 8.5;
+
+  @override
+  void initState() {
+    super.initState();
+    _quoteController.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
 
   @override
   void dispose() {
@@ -73,19 +80,19 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                    ShadInput(
+                    TextField(
                       controller: _searchController,
-                      placeholder: const Text('Film veya dizi ara...'),
-                      leading: const Padding(
-                        padding: EdgeInsets.only(right: 8),
-                        child: Icon(Icons.search_rounded, size: 20),
-                      ),
-                      trailing: GestureDetector(
-                        onTap: () {
-                          _searchController.clear();
-                          context.read<CreatePostCubit>().searchMedia('');
-                        },
-                        child: const Icon(Icons.clear, size: 18),
+                      autofocus: true,
+                      decoration: InputDecoration(
+                        hintText: 'Film veya dizi ara...',
+                        prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () {
+                            _searchController.clear();
+                            context.read<CreatePostCubit>().searchMedia('');
+                          },
+                        ),
                       ),
                       onChanged: (val) {
                         context.read<CreatePostCubit>().searchMedia(val);
@@ -96,56 +103,59 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       child: BlocBuilder<CreatePostCubit, CreatePostState>(
                         builder: (context, state) {
                           if (state is CreatePostSearching) {
-                            return const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor));
+                            return const Center(
+                              child: CircularProgressIndicator(color: AppTheme.primaryColor),
+                            );
                           }
                           if (state is CreatePostSearchResults) {
                             final list = state.results;
                             if (list.isEmpty) {
-                              return Center(
-                                child: Text('Sonuç bulunamadı.', style: TextStyle(color: AppTheme.mutedText)),
+                              return const Center(
+                                child: Text(
+                                  'Sonuç bulunamadı.',
+                                  style: TextStyle(color: AppTheme.mutedText),
+                                ),
                               );
                             }
                             return ListView.separated(
                               itemCount: list.length,
-                              separatorBuilder: (_, __) => const SizedBox(height: 10),
+                              separatorBuilder: (_, _) => const SizedBox(height: 10),
                               itemBuilder: (context, index) {
                                 final item = list[index];
                                 final title = item['title'] ?? item['name'] ?? 'İsimsiz';
                                 final poster = item['poster_path'];
                                 final type = item['media_type'] == 'tv' ? 'Dizi' : 'Film';
-                                final year = (item['release_date'] ?? item['first_air_date'] ?? '').toString();
+                                final year =
+                                    (item['release_date'] ?? item['first_air_date'] ?? '').toString();
 
                                 return InkWell(
                                   onTap: () => _onMediaSelected(item),
-                                  borderRadius: BorderRadius.circular(16),
+                                  borderRadius: BorderRadius.circular(18),
                                   child: Container(
                                     padding: const EdgeInsets.all(10),
                                     decoration: BoxDecoration(
                                       color: isDark ? const Color(0xFF14151C) : AppTheme.mediaCardBg,
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(
-                                        color: isDark ? AppTheme.darkCardBorder : AppTheme.borderColor,
-                                      ),
+                                      borderRadius: BorderRadius.circular(18),
                                     ),
                                     child: Row(
                                       children: [
                                         ClipRRect(
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius: BorderRadius.circular(10),
                                           child: poster != null
                                               ? Image.network(
                                                   AppConstants.getPosterUrl(poster),
-                                                  width: 44,
+                                                  width: 46,
                                                   height: 64,
                                                   fit: BoxFit.cover,
-                                                  errorBuilder: (_, __, ___) => Container(
-                                                    width: 44,
+                                                  errorBuilder: (_, _, _) => Container(
+                                                    width: 46,
                                                     height: 64,
                                                     color: AppTheme.placeholderColor,
                                                     child: const Icon(Icons.movie, color: Colors.grey),
                                                   ),
                                                 )
                                               : Container(
-                                                  width: 44,
+                                                  width: 46,
                                                   height: 64,
                                                   color: AppTheme.placeholderColor,
                                                   child: const Icon(Icons.movie, color: Colors.grey),
@@ -158,14 +168,21 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                                             children: [
                                               Text(
                                                 title,
-                                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: titleColor),
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w800,
+                                                  fontSize: 15,
+                                                  color: titleColor,
+                                                ),
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
                                               ),
                                               const SizedBox(height: 4),
                                               Text(
-                                                '$type • ${year.length >= 4 ? year.substring(0, 4) : ''}',
-                                                style: TextStyle(color: AppTheme.mutedText, fontSize: 13),
+                                                '$type · ${year.length >= 4 ? year.substring(0, 4) : ''}',
+                                                style: const TextStyle(
+                                                  color: AppTheme.mutedText,
+                                                  fontSize: 13,
+                                                ),
                                               ),
                                             ],
                                           ),
@@ -173,10 +190,14 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                                         Container(
                                           padding: const EdgeInsets.all(6),
                                           decoration: BoxDecoration(
-                                            color: AppTheme.primaryColor.withValues(alpha: 0.12),
+                                            color: AppTheme.primaryColor.withValues(alpha: 0.14),
                                             shape: BoxShape.circle,
                                           ),
-                                          child: const Icon(Icons.add, color: AppTheme.primaryColor, size: 18),
+                                          child: const Icon(
+                                            Icons.add,
+                                            color: AppTheme.primaryColor,
+                                            size: 18,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -185,7 +206,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                               },
                             );
                           }
-                          return Center(
+                          return const Center(
                             child: Text(
                               'Aramak için bir film veya dizi adı yazın.',
                               style: TextStyle(color: AppTheme.mutedText, fontSize: 14),
@@ -210,7 +231,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       _quoteController.clear();
       _contentController.clear();
       _searchController.clear();
-      _rating = 8.0;
+      _rating = 8.5;
     });
   }
 
@@ -237,21 +258,24 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
     if (!isQuote && content.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lütfen düşüncelerinizi / yorumunuzu yazın.'), backgroundColor: Colors.redAccent),
+        const SnackBar(
+          content: Text('Lütfen düşüncelerinizi / yorumunuzu yazın.'),
+          backgroundColor: Colors.redAccent,
+        ),
       );
       return;
     }
 
     final success = await context.read<CreatePostCubit>().createPost(
-      postType: isQuote ? 'quote' : 'review',
-      tmdbId: _selectedMedia != null ? int.tryParse(_selectedMedia!['id'].toString()) : null,
-      mediaType: _selectedMedia != null ? (_selectedMedia!['media_type'] ?? 'movie') : 'movie',
-      title: _selectedMedia != null ? (_selectedMedia!['title'] ?? _selectedMedia!['name']) : null,
-      posterPath: _selectedMedia != null ? _selectedMedia!['poster_path'] : null,
-      quoteText: isQuote ? quoteText : null,
-      content: content.isNotEmpty ? content : (isQuote ? 'Bu repliği paylaştı.' : ''),
-      rating: !isQuote ? _rating : null,
-    );
+          postType: isQuote ? 'quote' : 'review',
+          tmdbId: _selectedMedia != null ? int.tryParse(_selectedMedia!['id'].toString()) : null,
+          mediaType: _selectedMedia != null ? (_selectedMedia!['media_type'] ?? 'movie') : 'movie',
+          title: _selectedMedia != null ? (_selectedMedia!['title'] ?? _selectedMedia!['name']) : null,
+          posterPath: _selectedMedia != null ? _selectedMedia!['poster_path'] : null,
+          quoteText: isQuote ? quoteText : null,
+          content: content.isNotEmpty ? content : (isQuote ? 'Bu repliği paylaştı.' : ''),
+          rating: !isQuote ? _rating : null,
+        );
 
     if (success && mounted) {
       _resetForm();
@@ -260,42 +284,11 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Paylaşımınız yayınlandı! ⭐'),
-          backgroundColor: Color(0xFF2ECC71),
+          backgroundColor: Color(0xFF16A34A),
         ),
       );
       context.go('/feed');
     }
-  }
-
-  Widget _buildPill(String title, int index, bool isDark) {
-    final isSelected = _selectedTab == index;
-    final activeBg = isDark ? Colors.white : const Color(0xFF111111);
-    final activeText = isDark ? const Color(0xFF111111) : Colors.white;
-    final inactiveBorder = isDark ? AppTheme.darkCardBorder : AppTheme.inputBorderColor;
-    final inactiveText = isDark ? Colors.white70 : const Color(0xFF111111);
-
-    return GestureDetector(
-      onTap: () => setState(() => _selectedTab = index),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-        decoration: BoxDecoration(
-          color: isSelected ? activeBg : Colors.transparent,
-          borderRadius: BorderRadius.circular(99),
-          border: Border.all(
-            color: isSelected ? activeBg : inactiveBorder,
-            width: 1,
-          ),
-        ),
-        child: Text(
-          title,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected ? activeText : inactiveText,
-          ),
-        ),
-      ),
-    );
   }
 
   @override
@@ -304,6 +297,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     final bg = isDark ? AppTheme.darkBg : AppTheme.lightBg;
     final titleColor = isDark ? Colors.white : AppTheme.darkText;
     final mutedColor = isDark ? Colors.white60 : AppTheme.mutedText;
+    final boxBg = isDark ? AppTheme.darkCard : AppTheme.softGreyBg;
 
     final loc = AppLocalizations.of(context);
     final authState = context.watch<AuthCubit>().state;
@@ -311,258 +305,510 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     if (authState is! Authenticated) {
       return Scaffold(
         backgroundColor: bg,
-        appBar: AppBar(
-          backgroundColor: bg,
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: titleColor),
-            onPressed: () => Navigator.pop(context),
-          ),
-          title: Text('Yeni Paylaşım', style: TextStyle(color: titleColor, fontWeight: FontWeight.w800)),
-        ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(28),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.lock_outline_rounded, size: 54, color: AppTheme.primaryColor),
-                const SizedBox(height: 16),
-                Text(
-                  loc.translate('must_login'),
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: titleColor),
-                  textAlign: TextAlign.center,
+        body: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: boxBg,
+                        ),
+                        child: Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: titleColor),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        'Yeni Paylaşım',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: titleColor,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 44),
+                  ],
                 ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () => context.push('/login'),
-                  child: Text(loc.translate('login')),
+              ),
+              Expanded(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(28),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.lock_outline_rounded, size: 54, color: AppTheme.primaryColor),
+                        const SizedBox(height: 16),
+                        Text(
+                          loc.translate('must_login'),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: titleColor,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: () => context.push('/login'),
+                          child: Text(loc.translate('login')),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       );
     }
 
+    final selectedTitle =
+        _selectedMedia != null ? (_selectedMedia!['title'] ?? _selectedMedia!['name'] ?? '') : 'Apollo 13';
+    final selectedRelease = _selectedMedia != null
+        ? (_selectedMedia!['release_date'] ?? _selectedMedia!['first_air_date'] ?? '1995').toString()
+        : '1995';
+    final selectedYear =
+        selectedRelease.length >= 4 ? selectedRelease.substring(0, 4) : '1995';
+    final selectedType =
+        _selectedMedia != null && _selectedMedia!['media_type'] == 'tv' ? 'Dizi' : 'Film';
+    final selectedPoster = _selectedMedia?['poster_path'];
+
     return Scaffold(
       backgroundColor: bg,
-      appBar: AppBar(
-        backgroundColor: bg,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: titleColor),
-          onPressed: () => Navigator.pop(context),
-        ),
-        centerTitle: true,
-        title: Text(
-          'Yeni Paylaşım',
-          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: titleColor, letterSpacing: -0.3),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh_rounded, size: 22, color: titleColor),
-            tooltip: 'Temizle',
-            onPressed: _resetForm,
-          ),
-        ],
-      ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // 1. Kategori Hapları (.pill .pill.on: Replik Paylaş | İnceleme & Puan)
-              Row(
+        child: Column(
+          children: [
+            // 1. Üst Çubuk: Sol Yuvarlak "<" Butonu ve Ortalanmış "Yeni Paylaşım" (PDF Page 5)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
+              child: Row(
                 children: [
-                  _buildPill('Replik Paylaş', 0, isDark),
-                  const SizedBox(width: 8),
-                  _buildPill('İnceleme & Puan', 1, isDark),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: boxBg,
+                      ),
+                      child: Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: titleColor),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      'Yeni Paylaşım',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: titleColor,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 44),
                 ],
               ),
-              const SizedBox(height: 18),
+            ),
 
-              // 2. Film / Dizi Seçim Alanı (.in style="border-style:dashed")
-              if (_selectedMedia == null)
-                InkWell(
-                  onTap: _showMediaSearchDialog,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF14151C) : Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isDark ? AppTheme.darkCardBorder : AppTheme.inputBorderColor,
-                        width: 1,
-                        style: BorderStyle.solid,
+            // 2. Kaydırılabilir Form İçeriği
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Segmented Toggle: Replik Paylaş | İnceleme & Puan (PDF Page 5)
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: boxBg,
+                        borderRadius: BorderRadius.circular(30),
                       ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.movie_creation_outlined, color: mutedColor, size: 20),
-                        const SizedBox(width: 10),
-                        Text(
-                          'Film veya Dizi Seç (İsteğe Bağlı)',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: mutedColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              else
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF14151C) : AppTheme.mediaCardBg,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppTheme.primaryColor, width: 1.2),
-                  ),
-                  child: Row(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          AppConstants.getPosterUrl(_selectedMedia!['poster_path']),
-                          width: 44,
-                          height: 64,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            width: 44,
-                            height: 64,
-                            color: AppTheme.placeholderColor,
-                            child: const Icon(Icons.movie, color: Colors.grey),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _selectedMedia!['title'] ?? _selectedMedia!['name'] ?? '',
-                              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: titleColor),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => setState(() => _selectedTab = 0),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 180),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: _selectedTab == 0
+                                      ? (isDark ? AppTheme.primaryColor : Colors.white)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(26),
+                                  boxShadow: _selectedTab == 0
+                                      ? [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(alpha: 0.05),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ]
+                                      : null,
+                                ),
+                                child: Text(
+                                  'Replik Paylaş',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: _selectedTab == 0 ? FontWeight.w800 : FontWeight.w600,
+                                    color: _selectedTab == 0 ? titleColor : mutedColor,
+                                  ),
+                                ),
+                              ),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _selectedMedia!['media_type'] == 'tv' ? 'Dizi' : 'Film',
-                              style: TextStyle(color: mutedColor, fontSize: 12),
+                          ),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => setState(() => _selectedTab = 1),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 180),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: _selectedTab == 1
+                                      ? (isDark ? AppTheme.primaryColor : Colors.white)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(26),
+                                  boxShadow: _selectedTab == 1
+                                      ? [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(alpha: 0.05),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ]
+                                      : null,
+                                ),
+                                child: Text(
+                                  'İnceleme & Puan',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: _selectedTab == 1 ? FontWeight.w800 : FontWeight.w600,
+                                    color: _selectedTab == 1 ? titleColor : mutedColor,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Seçili Film / Dizi Kartı (Turuncu Çerçeveli Kutu - PDF Page 5)
+                    GestureDetector(
+                      onTap: _showMediaSearchDialog,
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: isDark ? AppTheme.darkCard : Colors.white,
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(color: AppTheme.primaryColor, width: 1.5),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 52,
+                              height: 70,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(14),
+                                gradient: const LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [Color(0xFF1E3A8A), Color(0xFF3B82F6)],
+                                ),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(14),
+                                child: selectedPoster != null
+                                    ? Image.network(
+                                        AppConstants.getPosterUrl(selectedPoster.toString()),
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                                      )
+                                    : const SizedBox.shrink(),
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _selectedMedia != null
+                                        ? selectedTitle.toString()
+                                        : 'Apollo 13 (Değiştirmek için dokun)',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 16,
+                                      color: titleColor,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '$selectedType · $selectedYear',
+                                    style: TextStyle(color: mutedColor, fontSize: 13),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () {
+                                if (_selectedMedia != null) {
+                                  setState(() => _selectedMedia = null);
+                                } else {
+                                  _showMediaSearchDialog();
+                                }
+                              },
+                              icon: Icon(Icons.close_rounded, color: mutedColor, size: 22),
                             ),
                           ],
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.close_rounded, color: Colors.redAccent, size: 20),
-                        onPressed: () => setState(() => _selectedMedia = null),
+                    ),
+
+                    const SizedBox(height: 22),
+
+                    if (_selectedTab == 0) ...[
+                      // Replik Metni Başlığı
+                      Text(
+                        'Replik Metni',
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w800,
+                          color: titleColor,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Replik Metni Gri Kutu + Amber Tırnak İşareti + 0/280 Sayacı (PDF Page 5)
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
+                        decoration: BoxDecoration(
+                          color: boxBg,
+                          borderRadius: BorderRadius.circular(22),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '“',
+                              style: TextStyle(
+                                fontSize: 40,
+                                height: 0.9,
+                                fontWeight: FontWeight.w900,
+                                fontStyle: FontStyle.italic,
+                                color: AppTheme.primaryColor,
+                              ),
+                            ),
+                            TextField(
+                              controller: _quoteController,
+                              maxLines: 4,
+                              maxLength: 280,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontStyle: FontStyle.italic,
+                                color: titleColor,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: 'Unutulmaz bir film repliği yazın...',
+                                hintStyle: TextStyle(
+                                  fontSize: 16,
+                                  fontStyle: FontStyle.italic,
+                                  color: mutedColor,
+                                ),
+                                counterText: '',
+                                filled: false,
+                                contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                              ),
+                            ),
+                            Align(
+                              alignment: Alignment.bottomRight,
+                              child: Text(
+                                '${_quoteController.text.length} / 280',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: mutedColor,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Kişisel Notunuz Başlığı
+                      Text(
+                        'Kişisel Notunuz',
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w800,
+                          color: titleColor,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: boxBg,
+                          borderRadius: BorderRadius.circular(22),
+                        ),
+                        child: TextField(
+                          controller: _contentController,
+                          maxLines: 3,
+                          style: TextStyle(fontSize: 15, color: titleColor),
+                          decoration: InputDecoration(
+                            hintText: 'Sahne veya karakter hakkında...',
+                            hintStyle: TextStyle(fontSize: 15, color: mutedColor),
+                            filled: false,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                          ),
+                        ),
+                      ),
+                    ] else ...[
+                      // Puan Seçici
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Puanınız',
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w800,
+                              color: titleColor,
+                            ),
+                          ),
+                          Text(
+                            '${_rating.toStringAsFixed(1)} / 10',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              color: AppTheme.primaryColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Slider(
+                        value: _rating,
+                        min: 1.0,
+                        max: 10.0,
+                        divisions: 18,
+                        activeColor: AppTheme.primaryColor,
+                        label: _rating.toStringAsFixed(1),
+                        onChanged: (val) => setState(() => _rating = val),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'İnceleme & Yorumunuz',
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w800,
+                          color: titleColor,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: boxBg,
+                          borderRadius: BorderRadius.circular(22),
+                        ),
+                        child: TextField(
+                          controller: _contentController,
+                          maxLines: 5,
+                          style: TextStyle(fontSize: 15, color: titleColor),
+                          decoration: InputDecoration(
+                            hintText: 'Film hakkındaki detaylı düşünceleriniz...',
+                            hintStyle: TextStyle(fontSize: 15, color: mutedColor),
+                            filled: false,
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                          ),
+                        ),
                       ),
                     ],
-                  ),
-                ),
-
-              const SizedBox(height: 18),
-
-              // 3. Form Alanları (.l ve .in)
-              if (_selectedTab == 0) ...[
-                // Replik Metni
-                Text(
-                  'Replik Metni',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: titleColor),
-                ),
-                const SizedBox(height: 6),
-                ShadInput(
-                  controller: _quoteController,
-                  maxLines: 4,
-                  placeholder: const Text('Unutulmaz bir film repliği yazın…'),
-                ),
-                const SizedBox(height: 14),
-
-                // Kişisel Notunuz
-                Text(
-                  'Kişisel Notunuz',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: titleColor),
-                ),
-                const SizedBox(height: 6),
-                ShadInput(
-                  controller: _contentController,
-                  maxLines: 3,
-                  placeholder: const Text('Sahne veya karakter hakkında notunuz…'),
-                ),
-              ] else ...[
-                // Puan Seçici
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Puanınız',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: titleColor),
-                    ),
-                    Text(
-                      '${_rating.toStringAsFixed(1)} / 10',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.primaryColor),
-                    ),
                   ],
                 ),
-                const SizedBox(height: 6),
-                Slider(
-                  value: _rating,
-                  min: 1.0,
-                  max: 10.0,
-                  divisions: 18,
-                  activeColor: AppTheme.primaryColor,
-                  label: _rating.toStringAsFixed(1),
-                  onChanged: (val) => setState(() => _rating = val),
-                ),
-                const SizedBox(height: 10),
+              ),
+            ),
 
-                // İnceleme & Eleştiri
-                Text(
-                  'İnceleme & Düşünceleriniz',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: titleColor),
-                ),
-                const SizedBox(height: 6),
-                ShadInput(
-                  controller: _contentController,
-                  maxLines: 4,
-                  placeholder: const Text('Film hakkındaki detaylı düşünceleriniz ve eleştiriniz…'),
-                ),
-              ],
-
-              const SizedBox(height: 28),
-
-              // 4. Yayınla Butonu (.am style)
-              BlocBuilder<CreatePostCubit, CreatePostState>(
+            // 3. Alt Sabit "Yayınla" Butonu (PDF Page 5)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+              child: BlocBuilder<CreatePostCubit, CreatePostState>(
                 builder: (context, state) {
                   final isSubmitting = state is CreatePostSubmitting;
-                  return SizedBox(
-                    height: 48,
-                    width: double.infinity,
-                    child: ShadButton(
-                      onPressed: isSubmitting ? null : _submitPost,
-                      backgroundColor: AppTheme.primaryColor,
-                      child: isSubmitting
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                            )
-                          : const Text(
-                              'Yayınla',
-                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white),
-                            ),
+                  return GestureDetector(
+                    onTap: isSubmitting ? null : _submitPost,
+                    child: Container(
+                      height: 56,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        gradient: const LinearGradient(
+                          colors: [
+                            AppTheme.primaryGradientStart,
+                            AppTheme.primaryGradientEnd,
+                          ],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.primaryColor.withValues(alpha: 0.35),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: isSubmitting
+                            ? const SizedBox(
+                                height: 22,
+                                width: 22,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                              )
+                            : const Text(
+                                'Yayınla',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                      ),
                     ),
                   );
                 },
               ),
-              const SizedBox(height: 20),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

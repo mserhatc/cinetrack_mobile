@@ -129,7 +129,7 @@ class _ActorDetailModalState extends State<ActorDetailModal> {
                                 AppConstants.getPosterUrl(profilePath),
                                 fit: BoxFit.cover,
                                 alignment: Alignment.topCenter,
-                                errorBuilder: (_, __, ___) => Container(
+                                errorBuilder: (_, _, _) => Container(
                                   color: Colors.grey.shade200,
                                   child: const Icon(Icons.person, size: 80, color: Colors.grey),
                                 ),

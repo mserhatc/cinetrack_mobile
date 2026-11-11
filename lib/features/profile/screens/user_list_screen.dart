@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_theme.dart';
 import '../cubit/profile_cubit.dart';
@@ -85,7 +84,7 @@ class _UserListScreenState extends State<UserListScreen> {
               : ListView.separated(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   itemCount: _users.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  separatorBuilder: (_, _) => const SizedBox(height: 10),
                   itemBuilder: (context, index) {
                     final u = _users[index];
                     final username = u['username'] ?? '';
@@ -94,34 +93,50 @@ class _UserListScreenState extends State<UserListScreen> {
 
                     return GestureDetector(
                       onTap: () => context.push('/profile/${u['id']}'),
-                      child: ShadCard(
-                        padding: const EdgeInsets.all(12),
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: isDark ? AppTheme.darkCard : Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: isDark ? AppTheme.darkCardBorder : const Color(0xFFF1F2F6),
+                          ),
+                        ),
                         child: Row(
                           children: [
-                            if (avatar != null && avatar.toString().isNotEmpty)
-                              ShadAvatar(
-                                avatar.toString(),
-                                size: const Size.square(48),
-                                placeholder: Text(
-                                  username.isNotEmpty ? username[0].toUpperCase() : '?',
-                                  style: const TextStyle(fontWeight: FontWeight.w800),
-                                ),
-                              )
-                            else
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: AppTheme.primaryColor.withValues(alpha: 0.12),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    username.isNotEmpty ? username[0].toUpperCase() : '?',
-                                    style: const TextStyle(fontWeight: FontWeight.w800, color: AppTheme.primaryColor),
-                                  ),
-                                ),
+                            Container(
+                              width: 48,
+                              height: 48,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: AppTheme.primaryColor,
                               ),
+                              child: ClipOval(
+                                child: (avatar != null && avatar.toString().isNotEmpty)
+                                    ? Image.network(
+                                        avatar.toString(),
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, _, _) => Center(
+                                          child: Text(
+                                            username.isNotEmpty ? username[0].toUpperCase() : '?',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    : Center(
+                                        child: Text(
+                                          username.isNotEmpty ? username[0].toUpperCase() : '?',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w800,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                              ),
+                            ),
                             const SizedBox(width: 14),
                             Expanded(
                               child: Column(

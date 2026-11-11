@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../auth/cubit/auth_cubit.dart';
 import '../cubit/feed_cubit.dart';
 
@@ -385,26 +385,33 @@ class _CommentsModalState extends State<CommentsModal> {
                                           context.push('/profile/$uid');
                                         }
                                       },
-                                      child: (avatar != null && avatar.toString().isNotEmpty)
-                                          ? ShadAvatar(
-                                              avatar.toString(),
-                                              size: const Size.square(36),
-                                              placeholder: Text(username.isNotEmpty ? username[0].toUpperCase() : '?'),
-                                            )
-                                          : Container(
-                                              width: 36,
-                                              height: 36,
-                                              decoration: BoxDecoration(
-                                                shape: BoxShape.circle,
-                                                color: theme.colorScheme.primary.withValues(alpha: 0.15),
-                                              ),
-                                              child: Center(
-                                                child: Text(
-                                                  username.isNotEmpty ? username[0].toUpperCase() : '?',
-                                                  style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
+                                      child: Container(
+                                        width: 36,
+                                        height: 36,
+                                        decoration: const BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: AppTheme.primaryColor,
+                                        ),
+                                        child: ClipOval(
+                                          child: (avatar != null && avatar.toString().isNotEmpty)
+                                              ? Image.network(
+                                                  avatar.toString(),
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (_, _, _) => Center(
+                                                    child: Text(
+                                                      username.isNotEmpty ? username[0].toUpperCase() : '?',
+                                                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                                                    ),
+                                                  ),
+                                                )
+                                              : Center(
+                                                  child: Text(
+                                                    username.isNotEmpty ? username[0].toUpperCase() : '?',
+                                                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                                                  ),
                                                 ),
-                                              ),
-                                            ),
+                                        ),
+                                      ),
                                     ),
                                     const SizedBox(width: 10),
 
@@ -541,15 +548,18 @@ class _CommentsModalState extends State<CommentsModal> {
                       ? Row(
                           children: [
                             Expanded(
-                              child: ShadInput(
+                              child: TextField(
                                 controller: _controller,
-                                placeholder: const Text('Bir yorum yaz...'),
+                                decoration: const InputDecoration(
+                                  hintText: 'Bir yorum yaz...',
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                ),
                                 onSubmitted: (_) => _submitComment(),
                               ),
                             ),
                             const SizedBox(width: 8),
                             IconButton(
-                              icon: Icon(Icons.send_rounded, color: theme.colorScheme.primary),
+                              icon: const Icon(Icons.send_rounded, color: AppTheme.primaryColor),
                               onPressed: _submitComment,
                             ),
                           ],
@@ -562,7 +572,7 @@ class _CommentsModalState extends State<CommentsModal> {
                                 style: TextStyle(color: theme.textTheme.bodySmall?.color, fontSize: 13),
                               ),
                             ),
-                            ShadButton(
+                            ElevatedButton(
                               onPressed: () {
                                 Navigator.of(context, rootNavigator: true).pop();
                                 context.push('/login');
